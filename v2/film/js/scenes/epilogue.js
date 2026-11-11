@@ -19,7 +19,9 @@ export default function epilogue({scene, mats, moonL, bloom, grade}) {
   const D = 230, cam0 = P.clone().addScaledVector(moonDir, -D), cam1 = P.clone().addScaledVector(moonDir, -D * .93);
   const shots = [
     Object.assign(pathShot('silhouette', 7, [cam0.toArray(), cam1.toArray()], [P.toArray(), P.clone().add(new THREE.Vector3(0, .6, 0)).toArray()], {fov: [7.5, 6.6], curve: (u) => u}), {focus: P}),
-    Object.assign(pathShot('ascend', 9, [[P.x + 40, 40, P.z + 70], [P.x + 20, 160, P.z + 150], [P.x - 40, 420, P.z + 260]], [[P.x, P.y, P.z], [P.x + 60, 60, P.z - 60], [P.x + 500, 140, P.z - 620]], {fov: [40, 44]}), {focus: P}),
+    /* G2 continues G1's line: pull straight back from the moon and open the lens, so the tower shrinks to a speck in front of it
+       while the city spreads out below */
+    Object.assign(pathShot('ascend', 9, [0, 1, 2, 3].map((k) => { const d = D * .93 + k / 3 * 380; return P.clone().addScaledVector(moonDir, -d).add(new THREE.Vector3(0, k / 3 * 50, 0)).toArray(); }), [P.toArray(), P.clone().add(new THREE.Vector3(0, -8, 0)).toArray()], {fov: [6.6, 34], curve: (u) => u * u * (3 - 2 * u)}), {focus: P}),
   ];
   let cur = null;
   return {

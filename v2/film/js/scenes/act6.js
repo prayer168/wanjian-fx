@@ -89,7 +89,7 @@ export default function act6({scene, mats, moonL, hemi, bloom, grade, renderer})
     Object.assign(pathShot('still', 4, [V(-moonDir.x * 26, 2.5, -moonDir.z * 26), V(-moonDir.x * 21, 2.2, -moonDir.z * 21)], [V(0, 1.2, 0), V(0, 1.4, 0)], {fov: [28, 25], curve: (u) => u * (2 - u)}), {focus: C}),
     Object.assign(pathShot('impact', 4, [V(-38, 6, 34), V(-42, 7, 37)], [V(0, 1, 0), V(0, 2, 0)], {fov: [34, 36], shake: .25}), {focus: C}),
     Object.assign(pathShot('pullout', 8, [V(30, 14, 34), V(110, 70, 140), V(240, 200, 330)], [V(0, 0, 0), V(-10, -10, -10), V(-30, -20, -30)], {fov: [40, 46], curve: (u) => 1 - Math.pow(1 - u, 2.4)}), {focus: C}),
-    Object.assign(pathShot('sky', 6, [V(14, 4, 14), V(14, 6, 14)], [V(40, 120, -20), V(30, 140, -30)], {fov: [62, 66]}), {focus: C}),
+    Object.assign(pathShot('sky', 6, [V(14, 4, 14), V(14, 6, 14)], [V(24, 160, 0), V(18, 170, -6)], {fov: [62, 66]}), {focus: C}),
   ];
   const m = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), p = new THREE.Vector3(), s = new THREE.Vector3(1, 1, 1), z = new THREE.Vector3();
   let cur = null;
@@ -123,6 +123,7 @@ export default function act6({scene, mats, moonL, hemi, bloom, grade, renderer})
       deckU.uT.value = t; deckU.uHole.value = dt < 3 ? 0 : (dt - 3) * 32;
       deck.visible = sh.name === 'pullout' || sh.name === 'sky';
       hemi.intensity = .55 + g * .6;
+      sky.uni.uStar.value = sh.name === 'sky' ? 1 + 1.6 * THREE.MathUtils.smoothstep(lt, 0, 3) : 1;  // the opened sky blazes with stars
     },
   };
 }

@@ -13,15 +13,15 @@ export const HOR = [.042, .030, .080];
 /* Night sky dome: gradient, hashed stars with twinkle, Milky Way band with dust lanes, moon glow.
    uDusk adds a warm afterglow toward uSun, uOver closes the sky with rain cloud, uFlash is lightning. */
 export function buildSky(scene, moonDir, {hor = HOR, dusk = 0, overcast = 0, sun = new THREE.Vector3(-.8, .05, .5)} = {}) {
-  const uni = {uMoon: {value: moonDir.clone()}, uT: {value: 0}, uHor: {value: new THREE.Vector3(...hor)}, uSun: {value: sun.clone().normalize()}, uDusk: {value: dusk}, uOver: {value: overcast}, uFlash: {value: 0}};
+  const uni = {uMoon: {value: moonDir.clone()}, uT: {value: 0}, uHor: {value: new THREE.Vector3(...hor)}, uSun: {value: sun.clone().normalize()}, uDusk: {value: dusk}, uOver: {value: overcast}, uFlash: {value: 0}, uStar: {value: 1}};
   const dome = new THREE.Mesh(new THREE.SphereGeometry(1500, 64, 32), new THREE.ShaderMaterial({
     side: THREE.BackSide, depthWrite: false, fog: false, uniforms: uni,
     vertexShader: `varying vec3 vD;void main(){vD=normalize(position);vec4 p=projectionMatrix*modelViewMatrix*vec4(position,1.);gl_Position=p.xyww;}`,
-    fragmentShader: `uniform vec3 uMoon,uHor,uSun;uniform float uT,uDusk,uOver,uFlash;varying vec3 vD;${GLSL_NOISE}
+    fragmentShader: `uniform vec3 uMoon,uHor,uSun;uniform float uT,uDusk,uOver,uFlash,uStar;varying vec3 vD;${GLSL_NOISE}
     void main(){vec3 d=normalize(vD);float e=d.y;
       vec3 top=vec3(.004,.005,.02),mid=vec3(.018,.016,.05);
       vec3 c=mix(uHor,mid,smoothstep(-.02,.18,e));c=mix(c,top,smoothstep(.18,.7,e));
-      float vis=(1.-uDusk*.85)*(1.-uOver);
+      float vis=(1.-uDusk*.85)*(1.-uOver)*uStar;
       vec3 n=normalize(vec3(.35,.8,.48));float bd=dot(d,n);float band=exp(-bd*bd*14.);
       float m=fb(d*7.);float lanes=smoothstep(.5,.72,fb(d*16.+4.));
       c+=vec3(.16,.15,.24)*band*m*(1.-lanes*.75)*smoothstep(-.05,.2,e)*vis;
@@ -41,6 +41,25 @@ export function buildSky(scene, moonDir, {hor = HOR, dusk = 0, overcast = 0, sun
       gl_FragColor=vec4(c,1.);}`,
   }));
   dome.renderOrder = -10; dome.frustumCulled = false; scene.add(dome);
+
+  /* bright stars as real points (the dome's hashed stars are one or two pixels wide): varied size, colour, twinkle */
+  const SR = rng(515), NS = 5000, sp = new Float32Array(NS * 3), sa = new Float32Array(NS * 2), sc = new Float32Array(NS * 3);
+  for (let i = 0; i < NS; i++) {
+    const u = SR() * 2 - 1, a = SR() * Math.PI * 2, r = Math.sqrt(1 - u * u);
+    sp.set([r * Math.cos(a), Math.abs(u) * .98 + .02, r * Math.sin(a)], i * 3);
+    sa.set([Math.pow(SR(), 6), SR()], i * 2);
+    const w = SR(); sc.set(w < .2 ? [1, .8, .6] : w < .5 ? [.75, .85, 1] : [1, 1, 1], i * 3);
+  }
+  const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.BufferAttribute(sp, 3)); sg.setAttribute('aS', new THREE.BufferAttribute(sa, 2)); sg.setAttribute('color', new THREE.BufferAttribute(sc, 3));
+  const stars = new THREE.Points(sg, new THREE.ShaderMaterial({
+    uniforms: uni, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, vertexColors: true,
+    vertexShader: `uniform float uT,uStar,uDusk,uOver;attribute vec2 aS;varying vec3 vC;varying float vA;
+      void main(){vec3 d=normalize(position);vec4 mv=modelViewMatrix*vec4(d*1400.,1.);gl_Position=projectionMatrix*mv;
+        float tw=.7+.3*sin(uT*(1.5+aS.y*6.)+aS.y*90.);vA=(.25+aS.x*1.6)*tw*uStar*(1.-uDusk*.85)*(1.-uOver)*smoothstep(.03,.2,d.y);
+        vC=color;gl_PointSize=(1.4+aS.x*3.2)*(.8+.25*uStar);}`,
+    fragmentShader: `varying vec3 vC;varying float vA;void main(){float r=length(gl_PointCoord-.5);float a=smoothstep(.5,.0,r);gl_FragColor=vec4(vC*a*a*vA,1.);}`,
+  }));
+  stars.renderOrder = -9.5; stars.frustumCulled = false; scene.add(stars);
 
   /* moon disc: craters + maria painted on canvas, HDR colour so bloom picks it up */
   const moonTex = canvasTex(1024, 1024, (g, w) => {
@@ -96,7 +115,7 @@ export function buildSky(scene, moonDir, {hor = HOR, dusk = 0, overcast = 0, sun
     dome, moon, uni,
     update(camera, t) {
       uni.uT.value = t;
-      dome.position.copy(camera.position);
+      dome.position.copy(camera.position); stars.position.copy(camera.position);
       const mp = camera.position.clone().addScaledVector(moonDir, DIST);
       moon.position.copy(mp); moon.lookAt(camera.position); moon.scale.setScalar(DIST * .13);
       halo.position.copy(mp); halo.scale.setScalar(DIST * .42);
