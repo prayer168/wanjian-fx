@@ -35,12 +35,14 @@ const bloom = new UnrealBloomPass(new THREE.Vector2(W, H), .75, .55, .82);
 composer.addPass(bloom);
 composer.addPass(new OutputPass());
 const grade = new ShaderPass({
-  uniforms: {tDiffuse: {value: null}, uT: {value: 0}, uVig: {value: .9}, uTint: {value: new THREE.Vector3(.92, .96, 1.08)}, uLift: {value: new THREE.Vector3(.012, .008, .03)}},
+  uniforms: {tDiffuse: {value: null}, uT: {value: 0}, uVig: {value: .9}, uTint: {value: new THREE.Vector3(.92, .96, 1.08)}, uLift: {value: new THREE.Vector3(.012, .008, .03)}, uInv: {value: 0}, uFlash: {value: 0}, uFade: {value: 1}},
   vertexShader: `varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
-  fragmentShader: `uniform sampler2D tDiffuse;uniform float uT,uVig;uniform vec3 uTint,uLift;varying vec2 vUv;
+  fragmentShader: `uniform sampler2D tDiffuse;uniform float uT,uVig,uInv,uFlash,uFade;uniform vec3 uTint,uLift;varying vec2 vUv;
     float h(vec2 p){return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453);}
     void main(){vec3 c=texture2D(tDiffuse,vUv).rgb;
       c=mix(c,c*uTint,.5);c+=uLift;
+      float l=dot(c,vec3(.299,.587,.114));c=mix(c,vec3(smoothstep(.55,.0,l)),uInv);  /* impact frame: stark inverted black/white */
+      c=mix(c,vec3(1.,.95,.85),uFlash);c*=uFade;
       float v=smoothstep(1.15,.35,length((vUv-.5)*vec2(1.25,1.)));c*=mix(1.,v,uVig);
       c+=(h(vUv*1000.+uT)-.5)*.035;gl_FragColor=vec4(c,1.);}`,
 });

@@ -85,6 +85,25 @@ export function makeFlutter(scene, {count = 1400, box = [40, 22, 40], color = [.
   return {mesh, uni, update(t, cam) { uni.uT.value = t; uni.uCam.value.copy(cam.position); }};
 }
 
+/* the monk's golden bell (v1 silhouette: hw(u) = W·sqrt(1-u⁴)·(1-.1·sin(uπ))): fresnel gold + hex lattice.
+   uFade 1 = whole, toward 0 it dissolves cell by cell with glowing edges; uGlow brightens it at the moment of impact. */
+export function makeGoldenBell(scene, {radius = 2.1, height = 3.8} = {}) {
+  const prof = []; for (let i = 0; i <= 40; i++) { const u = i / 40; prof.push(new THREE.Vector2(Math.max(.001, radius * Math.sqrt(Math.max(0, 1 - u ** 4)) * (1 - .1 * Math.sin(u * Math.PI))), u * height)); }
+  const uni = {uT: {value: 0}, uFade: {value: 1}, uGlow: {value: 1}, uH: {value: height}};
+  const mesh = new THREE.Mesh(new THREE.LatheGeometry(prof, 64), new THREE.ShaderMaterial({
+    uniforms: uni, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
+    vertexShader: `varying vec3 vN,vV,vP;void main(){vec4 w=modelMatrix*vec4(position,1.);vP=position;vN=normalize(mat3(modelMatrix)*normal);vV=normalize(cameraPosition-w.xyz);gl_Position=projectionMatrix*viewMatrix*w;}`,
+    fragmentShader: `uniform float uT,uFade,uGlow,uH;varying vec3 vN,vV,vP;
+      float hex(vec2 p){p.x*=1.1547;p.y+=mod(floor(p.x),2.)*.5;vec2 f=abs(fract(p)-.5);return smoothstep(.02,.0,abs(max(f.x*1.5+f.y,f.y*2.)-1.));}
+      void main(){float fr=pow(1.-abs(dot(normalize(vN),vV)),2.2);float a=atan(vP.z,vP.x);float y=vP.y/uH*3.8;
+        float hx=hex(vec2(a*4.,y*2.2));float band=smoothstep(.0,.4,sin(y*3.-uT*2.)*.5+.5);
+        float nz=fract(sin(dot(floor(vec2(a*44.,y*30.)),vec2(12.9,78.2)))*43758.5);float dis=step(nz,uFade)+smoothstep(.06,0.,abs(nz-uFade))*3.;
+        vec3 c=vec3(1.,.72,.25)*(fr*1.4+hx*.5*band)*min(uFade,1.)*dis*uGlow;gl_FragColor=vec4(c,1.);}`,
+  }));
+  scene.add(mesh);
+  return {mesh, uni};
+}
+
 /* soft billowing sprites: ground mist (static drift) or smoke columns (rise, grow, fade on a cycle) */
 let PUFF = null;
 const puffTex = () => PUFF || (PUFF = canvasTex(256, 256, (g, w, h) => {

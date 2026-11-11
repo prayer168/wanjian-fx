@@ -3,7 +3,7 @@ import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {buildSky, buildMountains} from '../sky.js';
 import {Kit, cityWall} from '../arch.js';
 import {terrain, addSway} from '../nature.js';
-import {makeSparks, makeSmoke} from '../fx.js';
+import {makeSparks, makeSmoke, makeGoldenBell} from '../fx.js';
 import {pathShot} from '../cam.js';
 import {canvasTex, grain, rng, fbm} from '../util.js';
 
@@ -83,20 +83,9 @@ export default function act1({scene, hemi, moonL, bloom, renderer, mats, grade})
   }
   arrows.castShadow = arrows.receiveShadow = true; scene.add(arrows);
 
-  /* the golden bell's ghost (v1 silhouette: hw(u) = W·sqrt(1-u⁴)·(1-.1·sin(uπ))), fresnel gold + hex lattice, fading out */
-  const prof = []; for (let i = 0; i <= 40; i++) { const u = i / 40; prof.push(new THREE.Vector2(Math.max(.001, 2.1 * Math.sqrt(Math.max(0, 1 - u ** 4)) * (1 - .1 * Math.sin(u * Math.PI))), u * 3.8)); }
-  const ghostU = {uT: {value: 0}, uFade: {value: 1}};
-  const ghost = new THREE.Mesh(new THREE.LatheGeometry(prof, 64), new THREE.ShaderMaterial({
-    uniforms: ghostU, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
-    vertexShader: `varying vec3 vN,vV,vP;void main(){vec4 w=modelMatrix*vec4(position,1.);vP=position;vN=normalize(mat3(modelMatrix)*normal);vV=normalize(cameraPosition-w.xyz);gl_Position=projectionMatrix*viewMatrix*w;}`,
-    fragmentShader: `uniform float uT,uFade;varying vec3 vN,vV,vP;
-      float hex(vec2 p){p.x*=1.1547;p.y+=mod(floor(p.x),2.)*.5;vec2 f=abs(fract(p)-.5);return smoothstep(.02,.0,abs(max(f.x*1.5+f.y,f.y*2.)-1.));}
-      void main(){float fr=pow(1.-abs(dot(normalize(vN),vV)),2.2);float a=atan(vP.z,vP.x);
-        float hx=hex(vec2(a*4.,vP.y*2.2));float band=smoothstep(.0,.4,sin(vP.y*3.-uT*2.)*.5+.5);
-        float nz=fract(sin(dot(floor(vec2(a*44.,vP.y*30.)),vec2(12.9,78.2)))*43758.5);float dis=step(nz,uFade)+smoothstep(.06,0.,abs(nz-uFade))*3.;
-        vec3 c=vec3(1.,.72,.25)*(fr*1.4+hx*.5*band)*uFade*dis;gl_FragColor=vec4(c,1.);}`,
-  }));
-  ghost.position.set(0, hfn(0, 0) - .1, 0); scene.add(ghost);
+  /* the golden bell's ghost, fading out */
+  const {mesh: ghost, uni: ghostU} = makeGoldenBell(scene);
+  ghost.position.set(0, hfn(0, 0) - .1, 0);
   const dust = makeSparks(scene, [{x: 0, y: .2, z: 0, r: 2.6}], {count: 1600, rise: 4.5, spread: 1.4, size: 9, life: .12, hot: [1, .8, .35], cool: [.8, .45, .1], wind: [.6, .2], twinkle: 1, seed: 7});
   const sparks = makeSparks(scene, embers, {count: 700, rise: 2.2, spread: .3, size: 7, life: .5, wind: [.8, .3]});
   const smoke = makeSmoke(scene, embers.filter((_, i) => i % 3 === 0).slice(0, 18).map((s) => ({...s, k: .6})), {per: 5, color: [.16, .13, .13], opacity: .22, rise: 5, period: 10});
