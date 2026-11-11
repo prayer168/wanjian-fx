@@ -1,0 +1,6 @@
+v2/audio/stems/
+v2/out/
+*.wav
+*.mp4
+node_modules/
+.venv/
