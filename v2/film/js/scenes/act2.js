@@ -49,10 +49,10 @@ export default async function act2(ctx) {
     {d: 2.0, S: {clip: 'X_run_up_wall'}, M: {clip: 'X_jump_from_sprint'}, shot: 'crane', gap: 4, move: 3, vo: [['b2', .1]], whip: 1},
     /* up on the ridges of the north row */
     {d: 1.6, place: new THREE.Vector3(-118, 0, ZR), gfn: roof, side: -1, S: {clip: 'X_landing', off: .2}, M: {clip: 'X_landing', off: .2}, shot: 'wide', gap: 3, whipIn: 1},
-    {d: 2.2, S: 'S_gs_spin_attack_run', M: {clip: 'M_inward_block'}, shot: 'track' side: -1, gap: 1.6, move: 2, sk: [{kind: 'crescent', at: .5}, {kind: 'crescent', at: 1.1, up: [0, 1, 0]}]},
-    {d: 2.4, S: {clip: 'S_spell_two_hand_sword'}, M: 'M_high_block', shot: 'low' side: -1, gap: 3, sk: [{kind: 'fan', at: .2, fire: 1.0, span: 1.2}]},
-    {d: 2.0, S: {clip: 'S_gs_pose_idle'}, M: {clip: 'X_knocked_down', off: .2}, shot: 'overhead' side: -1, gap: 3.4},
-    {d: 2.2, S: {clip: 'X_big_front_flip'}, M: {clip: 'X_get_up', off: .4}, shot: 'track' side: -1, gap: 7, move: 4},
+    {d: 2.2, S: 'S_gs_spin_attack_run', M: {clip: 'M_inward_block'}, shot: 'track', side: -1, gap: 1.6, move: 2, sk: [{kind: 'crescent', at: .5}, {kind: 'crescent', at: 1.1, up: [0, 1, 0]}]},
+    {d: 2.4, S: {clip: 'S_spell_two_hand_sword'}, M: 'M_high_block', shot: 'low', side: -1, gap: 3, sk: [{kind: 'fan', at: .2, fire: 1.0, span: 1.2}]},
+    {d: 2.0, S: {clip: 'S_gs_pose_idle'}, M: {clip: 'X_knocked_down', off: .2}, shot: 'overhead', side: -1, gap: 3.4},
+    {d: 2.2, S: {clip: 'X_big_front_flip'}, M: {clip: 'X_get_up', off: .4}, shot: 'track', side: -1, gap: 7, move: 4},
   ];
   const F = await stageFight(ctx, {beats, center: new THREE.Vector3(-168, 0, 1.2), yaw: Math.PI / 2, gfn: street, t0: 6, film0: 6, wind: [-1.4, 0, .5]});
 

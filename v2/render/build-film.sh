@@ -8,7 +8,7 @@ NAME=${NAME:-wanjian2-full-v3}
 ALL="prologue act1 act2 act3 act4 act5 act6 epilogue"
 cd "$V/render"
 if [ -z "$SKIP_RENDER" ]; then
-  for a in ${PARTS:-$ALL}; do echo "== $a $(date +%T)"; node render.mjs "film/film.html?shot=$a" ../out/scene-$a.mp4 2>&1 | grep -v "^frame" | tail -1; done
+  for a in ${PARTS:-$ALL}; do echo "== $a $(date +%T)"; node render.mjs "film/film.html?shot=$a" ../out/scene-$a.mp4 > ../out/render-$a.log 2>&1 || { echo "RENDER FAILED: $a"; tail -5 ../out/render-$a.log; exit 1; }; tail -1 ../out/render-$a.log; done
 fi
 
 # picture: hard cuts (the shots carry their own whip-pan / match-cut transitions), fade in at the start and out at the end
