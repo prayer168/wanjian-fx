@@ -1,0 +1,171 @@
+# 《萬箭金鐘罩 II：瓦上追風》製作紀錄
+
+這份文件記錄整部片從零到成片的製作過程：使用者的指示（提示詞）、每個階段做了什麼、用了哪些軟體與開源專案、遇到的問題與解法。製作全程由 Claude Code（Anthropic，模型 Claude Opus 5.5）依指示撰寫程式並操作工具完成。本文件會隨製作持續更新。
+
+---
+
+## 一、成品規格
+
+| 項目 | 規格 |
+|---|---|
+| 形式 | 直接輸出 MP4 影片，不做網頁播放器、畫面不加說明文字、不放標題 |
+| 解析度、幀率 | 1920×1080、60 fps |
+| 編碼 | H.264（libx264，crf 16），音訊 AAC 320 kbps |
+| 長度 | v1 3:13（只有場景）→ v2 4:13（加入角色打鬥）→ v3 製作中 |
+| 響度 | −14 LUFS，真峰值 ≤ −1 dBFS（YouTube 建議值） |
+| 授權要求 | 頻道已營利，所有素材與模型都必須可商用 |
+
+---
+
+## 二、使用者提示詞（依時間順序）
+
+以下是使用者在各階段給的指示，原文照錄（英文按鈕回覆保留原樣）。
+
+### 第一階段：場景（v1 之前的對話）
+- 建立史詩版企劃與分鏡腳本（見 `EPIC_SCRIPT.md`）、VRoid 捏人指南（`VROID_GUIDE.md`）、人偶確認頁（`rig-test.html`）。
+- 「繼續做場景」
+- 「修場景細節」
+- 「Commit first」、「Build the prologue」、「Commit the prologue」、「Push to GitHub」、「Open a PR」、「Install gh」
+- 「標題要填到哪個地方？包括說明的地方在哪裡？可否截圖給我看？」
+- 「Act VI + epilogue」
+- 「接下來就是把影片全部做完，最後再做 commit 和 push 到 GitHub 去」
+- 「把影片的標題拿掉」
+- 「目前我的 C 槽和 Google Drive 的空間所剩不多，你有辦法查出來是什麼原因嗎？」→「Move to D」→「重新安裝」（Playwright 瀏覽器）
+- 「Fix scene flaws」、「C:\Users\user\AppData\Local\ms-playwright 可以移到D嗎」
+- 「繼續製作影片」（→ 程式合成音效，完成 v1 有聲版）
+
+### 第二階段：角色、打鬥、配樂（v2）
+- 「好，繼續做兩位角色、打鬥、台詞和配樂」
+  - 選擇：VRM 檔還沒有 →「我先做替身角色」；台詞 →「不要台詞」
+- 「兩位角色要非常細致，彷彿真實的人物。請你無論如何要在人物的精緻度，還有場景任何地方越真實越好。」
+  - 選擇：「裝 Blender + MakeHuman」、同意下載 MakeHuman CC0 素材包（約 600 MB，放 D 槽）
+- 「Push」
+
+### 第三階段：全面升級（v3，進行中）
+- 「我覺得背景音樂要有一致性，音效稍微可以再降低一點點。另外場景的切換不夠流暢。最大的問題是兩個角色的打鬥不夠激烈、也不夠流暢。我希望這兩個角色在每個場景、每個畫面幾乎都有出現，然後一直打鬥：1. 拿劍的一方：可以使出很多招式，特效盡量全部都使出來，越華麗、越有創意都好。比如可以召喚數千萬支劍在空中，然後聚集成一把大劍刺向金鐘罩。你可以上網查詢一下目前劍術可以有的各種招式。2. 金鐘罩的和尚：不可以一直只用金鐘罩這一招，他也要使出少林派的各種絕學。請你到網路上去搜尋少林派的各種絕學。兩個人互相打鬥要有輸有贏。人物還可以更細緻一些。還有場景的表現不夠專業，可以有俯視圖、近景、遠景還有特寫等各種角度。一樣再去搜尋電影運作的各種運鏡方式，把它加入到這個動畫來。總之，我認為目前還沒辦法到奧斯卡等級的地步。」
+  - 選擇：動作來源 →「Mixamo 動作捕捉」
+- 「一邊製作影片，一邊也把製作影片的整個流程、用到了哪些提示詞、哪些軟體和開源專案等等，列出一個詳細的製作過程，存成 history.md，最後一樣把它 commit and push 到 GitHub 去」
+- 「配音用 Google Flash 3.8 TTS 來配音，要有兩個人物。配音用國語台灣腔，語音聲調要有起伏，隨著打鬥要有起伏變化，也就是說要有口氣、帶有情緒。」（推翻先前「不要台詞」的決定）
+
+---
+
+## 三、軟體與開源專案
+
+| 名稱 | 版本 | 用途 | 授權 |
+|---|---|---|---|
+| Claude Code（Anthropic） | Claude Opus 5.5 | 撰寫全部程式、操作工具、檢查畫面 | — |
+| [Three.js](https://threejs.org/) | r160（jsDelivr CDN） | 3D 場景、材質、粒子、後製（泛光、調色） | MIT |
+| Three.js addons | r160 | EffectComposer、UnrealBloomPass、Reflector、GLTFLoader、BufferGeometryUtils | MIT |
+| [Playwright](https://playwright.dev/) + Chromium headless | 1.x | 開網頁逐格渲染並截圖（`--use-angle=d3d11` 用 GPU） | Apache-2.0 |
+| [Node.js](https://nodejs.org/) | 24 | 渲染驅動、音效與配樂合成 | MIT |
+| [FFmpeg](https://ffmpeg.org/) | 7.x | 圖片串流編碼成 MP4、剪接、混音、EBU R128 響度正規化 | LGPL/GPL |
+| [Blender](https://www.blender.org/) | 5.2.2 LTS | 以 Python 腳本無介面建角色、匯出 GLB | GPL（產出物不受限） |
+| [MPFB2（MakeHuman for Blender）](https://static.makehumancommunity.org/mpfb.html) | 2026-10-10 build | 產生寫實人體、骨架（game_engine）、皮膚、眼睛、毛髮 | GPL（外掛），產出物不受限 |
+| [MakeHuman 素材包](https://static.makehumancommunity.org/assets/assetpacks/index.html) | system assets、skins02、eyebrows01、eyelashes01、hair01、system hair materials01 | 皮膚貼圖、眼睛、眉毛、睫毛、牙齒、髮型 | **CC0** |
+| [Gemini 3.8 Flash TTS](https://ai.google.dev/)（Google，`gemini-3.8-flash-tts`） | 2026 | 兩位角色的配音：Voice design 設計台灣腔國語聲線，逐句加語氣指示合成 | Gemini API 服務條款 |
+| [Mixamo](https://www.mixamo.com/)（Adobe） | — | 武術、劍術、翻滾等動作捕捉（v3） | 免版稅可用於商業影片；原始檔不得散布，故不放進 GitHub |
+| Git + [GitHub CLI](https://cli.github.com/) | — | 版本控制、推送、PR | MIT |
+| winget | — | 安裝 gh、Blender | — |
+
+字型：v1 曾用 Google Fonts「Ma Shan Zheng」（OFL）做片名，使用者要求拿掉標題後已移除。
+
+**未使用**：VRoid（動漫風格不符寫實要求）、任何 AI 生圖或生成影片模型、任何有版權的音樂或音效素材。音樂與音效都是程式合成；只有角色配音使用 AI 語音（Gemini TTS）。上傳 YouTube 時，依平台規定應勾選「含合成內容」的揭露。
+
+---
+
+## 四、製作流程
+
+### 1. 渲染管線（`film/`、`render/`）
+1. `film/film.html?shot=<場景>` 載入一個場景模組，場景會回傳一串鏡頭（每個鏡頭有長度和攝影機路徑）以及每格更新函式。
+2. `window.__renderFrame(i)` 畫出第 i 格。所有動畫、粒子、布料都只依時間決定，所以任何一格單獨渲染結果都一樣。
+3. `render/render.mjs` 用 Playwright 開無頭 Chromium，逐格呼叫、截圖，透過管線送進 ffmpeg 編碼。
+4. 後製：HDR 多重取樣緒染目標 → 清除無效像素（NaN）→ UnrealBloom 泛光 → ACES 色調映射 → 調色（暗角、色偏、衝擊格黑白反轉、閃白、淡出、底片顆粒）。
+
+### 2. 場景（`film/js/`）
+- `sky.js`：程式天空球（漸層、晚霞、雲、月亮貼圖與光暈、5000 顆星點）與遠山。
+- `arch.js`：中式建築產生器（歇山頂、斗拱、飛簷、瓦當、城牆城門、牌樓、七層鐘樓、拱橋、烏篷船、柳樹、燈籠），合併成少數幾個網格。
+- `nature.js`：地形、竹林（實例化竹子＋透明貼片葉叢）、隨風搖擺的頂點著色器。
+- `fx.js`：雨、水花、火星、落葉、霧、煙、v1 的金鐘罩。
+- 八個場景：序幕（月下山城）、第一幕（黃昏荒原萬箭）、第二幕（城門與燈市屋脊）、第三幕（月下竹海）、第四幕（雨夜運河石橋，含反射水面與雨滴漣漪）、第五幕（七層鐘樓）、第六幕（雙鐘共鳴：衝擊波掀起全城屋瓦、燈籠熄滅又亮起、雲層被推開見星空）、尾聲（塔頂背對滿月）。
+
+### 3. 寫實角色（`chars/`）
+1. `chars/build_char.py` 由 Blender 無介面執行（`blender -b --python chars/build_char.py -- chars/swordsman.json assets/characters/swordsman.glb`）。
+2. 讀角色設定 JSON（性別、年齡、肌肉、體重、身高、族裔比例、皮膚、眼睛、眉毛、睫毛、牙齒、髮型），呼叫 MPFB 產生人體並綁上 game_engine 骨架。
+3. 服裝不靠現成素材，依身體形狀與骨頭權重自動生成：
+   - 貼身部分（上衣、褲、靴、護腕）：複製身體表面 → 平滑 → 沿法線外推 → 邊緣鬆弛去鋸齒；袈裟斜邊用平面切割。
+   - 裙擺：從腰到腳踝的車床曲面，左右兩片各自跟隨同側大腿，前襟交疊。
+   - 寬袖、腰帶、念珠：程式幾何。
+   - 權重：以最近的身體頂點複製，只取真正的骨頭群組。
+   - 被衣服蓋住的皮膚刪掉，避免穿模。
+4. `chars/preview.py` 用 Eevee 算正面、側面、背面、臉部預覽圖檢查。
+5. 劍客：25 歲亞洲男性、馬尾、白袍、箭袖護腕。和尚：中年、肌肉壯碩、光頭、右肩袒露的袈裟、念珠、綁腿。
+
+### 4. 動作與打鬥（`film/js/cast.js`、`people.js`、`fight.js`）
+- `cast.js`：從 `rig-test.html` 移植的隱形操偶骨架與招式庫（站、跑、跳、空翻、斬、刺、擋、拳、掌、馬步、受擊、攀牆、對峙），加上時間軸編排（每段：何時、哪一招、從哪移到哪、拋物線高度、面向）。
+- `people.js`：每一格把操偶骨架的世界旋轉差量轉到 MakeHuman 骨架上（手臂從 A 字站姿重新對準），手指依握拳量彎曲，劍跟著手；材質：皮膚毛孔法線、絲光布料、濕潤眼球、金屬劍。
+- `fight.js`：連招序列、沿路徑移動、對屋頂與橋面做高度探測讓腳踩在瓦上。
+- 打擊事件（命中、格擋、落地、鐘鳴）由渲染器匯出成 JSON，交給音效軌對位。
+- v3：改用 Mixamo 動作捕捉，並加入招式特效模組 `skills.js`（萬劍歸宗、劍雨、九霄劍陣、劍氣新月、金色掌印、龍爪、一指禪光束、經文光環、千手如來掌）。
+
+### 5. 聲音（`audio/`）
+- `dsp.mjs`：自寫的離線合成工具（濾波器、各色雜訊、風、竹葉、雨、蟲鳴、人聲、銅鐘、風鈴、爆震、風切、木擊、低鳴）。
+- `score.mjs`：環境音與打擊音效，依每幕事件時間放置，聲音比畫面早一格。
+- `music.mjs`：程式作曲，D 小調五聲音階。古琴（Karplus-Strong 撥弦）、二胡（鋸齒波＋滑音＋顫音＋共振峰）、太鼓、低音弦樂鋪底；同一主旋律貫穿全片；第六幕衝擊前全靜音。
+- 混音：音效＋配樂 → FFmpeg loudnorm 兩段式正規化到 −14 LUFS → 限幅器 → 與畫面合併。
+
+### 6. 配音（`audio/voice.mjs`、`audio/lines.mjs`）
+1. 用 Gemini API 的 Voice design（`POST /v1beta/voices`，`type: prompted`，`language_code: zh-TW`）為兩人各設計一個聲線，只描述固定特質：
+   - 劍客：「二十多歲的年輕劍客，說國語帶自然的台灣腔。聲音清亮乾淨、中高音、咬字俐落，語氣裡帶一點瀟灑和傲氣。」
+   - 武僧：「四十多歲的少林武僧，說國語帶自然的台灣腔。聲音低沉渾厚、胸腔共鳴很強、沉穩有威嚴，發功時聲如洪鐘。」
+2. 每句台詞單獨合成（`POST /v1beta/interactions`，model `gemini-3.8-flash-tts`），情緒寫在該句的 `speech_metadata.style`，例如「被震飛時倒抽一口氣，痛苦咬牙，接著不服氣地讚嘆」，並用 `<gasp>`、`<laugh>`、`<breath>`、`<sigh>`、`<cough>` 標出呼吸與笑聲。
+3. 共 26 句（喊招式名、挑釁、受傷喘息、讚嘆、結尾的「明日，再戰。」），全文見 `audio/lines.mjs`。快取在 `out/audio/vo/`，只重做改過的句子。
+4. API 金鑰從環境變數 `GEMINI_API_KEY` 讀取，不寫進程式或 GitHub。
+
+### 7. 輸出（`v2/out`，不上傳 GitHub）
+`scene-*.mp4`（八段）→ 剪接 → `wanjian2-full-v2.mp4` → 加聲音 → `wanjian2-full-v2-sound.mp4`。v2 整片渲染約 30 分鐘（RTX 5060 Ti）。
+
+---
+
+## 五、版本與提交
+
+| Commit | 內容 |
+|---|---|
+| 7f53535 | Three.js 離線渲染管線與五幕場景 |
+| 361b7cc | 序幕場景 |
+| 33e78ed | 第六幕雙鐘共鳴與尾聲 |
+| 3e577c7 | 拿掉序幕標題、修正山嶺穿出遠山 |
+| dced274 | 程式合成音效、星空與尾聲運鏡 |
+| bf58f54 | 寫實角色（MakeHuman）與第一、二幕打鬥 |
+| e66716f | 第三至六幕與尾聲的寫實角色打鬥、程式配樂、打擊音效 |
+| d40addf | 修正第四幕殘留的除錯程式 |
+| （本次） | v3 打鬥劇本、招式特效模組、Gemini TTS 配音、製作紀錄 |
+
+PR：https://github.com/prayer168/wanjian-fx/pull/1
+
+---
+
+## 六、遇到的問題與解法（節錄）
+
+| 問題 | 原因 | 解法 |
+|---|---|---|
+| 月亮沒有貼圖、出現光柱 | 畫布遮罩用錯填色，把月面紋理清掉 | 遮罩前先設白色填色 |
+| 竹林像線條 | 葉子用線段 | 改用透明貼圖葉叢卡片 |
+| 遠山前出現倒立鋸齒 | 松林與山脊超出霧化範圍 | 限制山脊範圍 |
+| 長時間渲染當掉 | 截圖逾時 30 秒 | 逾時拉長到 180 秒並重試一次 |
+| 寫實角色前臂跟著上臂走 | 複製了 MakeHuman 的非骨頭權重群組，匯出時只留前 4 個影響 | 只複製骨頭權重，並以最近頂點綁定 |
+| 眼睛發藍、發紅 | 角膜殼取到貼圖角落的藍色、虹膜偏紅 | 著色器丟棄角膜像素並調虹膜色 |
+| 畫面出現黑塊、白塊 | 劍氣拖尾輸出超出範圍的亮度，被泛光放大 | 夾住拖尾輸出；泛光前清除無效像素 |
+| 第二幕載入逾時 | 對整座城的瓦片做數百次射線偵測 | 只取路線附近的三角形 |
+| 第六幕卡住 | 定格段速度為 0，結算事件時除以 0 形成無限迴圈 | 定格段不產生事件 |
+| 峰值超過 0 dBFS | AAC 編碼讓峰值升高 | 限幅到 −3 dB 再編碼 |
+
+---
+
+## 七、研究參考
+
+- 少林七十二藝：https://wuxiasociety.com/seventy-two-supreme-skills-of-shaolin/ 、https://sports.huanqiu.com/article/9CaKrnK4vaC
+- 武俠劍法類型：https://wuxiasociety.com/spirit-blades-of-six-meridians/ 、https://wuxia.fandom.com/wiki/9_Swords_of_Dugu
+- 香港動作片拍法（停—爆—停、分鏡頭拍攝）：https://www.davidbordwell.net/blog/2011/01/14/planet-hong-kong-the-dragon-dances/
+- 袁和平訪談報導：https://malaysia.news.yahoo.com/man-wire-yuen-woo-ping-110426102.html
+- 運鏡類型：https://masterclass.com/articles/guide-to-camera-moves 、https://artlist.io/blog/camera-movement/
+- 動作捕捉授權：CMU（可商用、不可轉售原檔）https://paperswithcode.com/dataset/cmu-motion-capture
