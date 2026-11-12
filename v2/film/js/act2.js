@@ -16,7 +16,7 @@ export function buildAct2(scene, mats) {
     while (x < 170) {
       const w = 6 + R() * 6, d = 7 + R() * 3, floors = R() < .25 ? 3 : R() < .7 ? 2 : 1;
       const top = building(kit, {x: x + w / 2, z: side * (5 + d / 2), ry: side > 0 ? Math.PI : 0, w, d, floors, lit: .55, sign: R() < .5, lift: .8 + R() * .5}, R, lamps);
-      roofs.push({x: x + w / 2, z: side * (5 + d / 2), w, d, top});
+      roofs.push({x: x + w / 2, z: side * (5 + d / 2), w, d, top, floors});
       if (R() < .35) stall(kit, x + w / 2, side * 3.2, side > 0 ? Math.PI : 0, R);
       x += w + .3 + (R() < .12 ? 3.5 : 0);
     }
