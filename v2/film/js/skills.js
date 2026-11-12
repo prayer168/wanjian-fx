@@ -86,6 +86,7 @@ export function makeSwordRain(scene, {n = 600, at, radius = 9, ground = 0, t0 = 
     vec3 state(float t,out float a,out vec3 d){float t0=uR.x+aA.w*uR.y,l=t-t0;vec3 dir=normalize(vec3(aB.x,-1.,aB.y));
       vec3 hitp=aA.xyz-dir*(.35+aB.w*.3);vec3 p=hitp-dir*max(0.,-l)*60.;d=dir;
       a=smoothstep(-.6,-.2,l)*(1.-smoothstep(1.,3.5,l))*(1.+2.5*exp(-max(l,0.)*12.)*step(0.,l));return p;}`, uni);
+  uni.uGain.value = .2;   // hundreds overlap on screen: keep each one faint
   const mesh = new THREE.Mesh(geo, mat); mesh.frustumCulled = false; scene.add(mesh);
   return {mesh, uni, update(t) { uni.uT.value = t; }};
 }

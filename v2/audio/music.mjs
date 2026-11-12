@@ -2,7 +2,7 @@
 // four-chord cycle in D minor run from the first frame to the last; sections only change the intensity and the instruments,
 // so nothing restarts at a cut. Guqin-like plucks (Karplus-Strong), an erhu-like bowed line, taiko and a low string pad.
 // Act VI keeps its half second of total silence before the impact. Output: out/audio/music.wav (pre-normalisation).
-import {writeFileSync, mkdirSync} from 'node:fs';
+import {writeFileSync, mkdirSync, existsSync, readFileSync} from 'node:fs';
 import {dirname, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {SR, buf, add, rng, Biquad, white, smooth, wav} from './dsp.mjs';
@@ -13,13 +13,20 @@ const START = {}; { let t = 0; for (const [n, l] of SECTIONS) { START[n] = t; t 
 const S = (sec, t) => START[sec] + t;                        // section time -> film time
 const mf = (m) => 440 * 2 ** ((m - 69) / 12);
 const BPM = 96, BEAT = 60 / BPM, BAR = BEAT * 4;
-const IMPACT = S('act6', 4.0), HUSH = [S('act6', 3.4), IMPACT];
+const IMPACT = S('act6', 14.0), HUSH = [S('act6', 13.4), IMPACT];
 
-/* intensity 0..3 over the film: calm, light, driving, full. Linear between keys. */
-const INT = [[0, 0], [S('act1', 0), .6], [S('act1', 24), 1.6], [S('act1', 32), 2.2], [S('act2', 0), 1.8], [S('act2', 14), 2.4], [S('act2', 37), 1.2],
-  [S('act3', 0), 1], [S('act3', 20), 2.4], [S('act3', 29), 2.6], [S('act3', 33), 1.2], [S('act4', 0), 1.2], [S('act4', 17), 3], [S('act4', 29), 2.2],
-  [S('act5', 0), 1.6], [S('act5', 8), 2.4], [S('act5', 21), 2.8], [S('act6', 0), 2.8], [S('act6', 3.4), 0], [IMPACT, 3], [S('act6', 14), 1.4], [S('epilogue', 0), .6], [TOTAL, 0]];
-const lvl = (t) => { for (let i = 1; i < INT.length; i++) if (t <= INT[i][0]) { const [a, va] = INT[i - 1], [b, vb] = INT[i]; return va + (vb - va) * (t - a) / Math.max(1e-6, b - a); } return 0; };
+/* intensity 0..3 over the film, from the fight itself: the density of blows in each section's event list (smoothed over ~3 s),
+   with calm establishing shots, the build of the storm of swords, the hush and the impact written in */
+const lvl = (() => {
+  const step = .25, n = Math.ceil(TOTAL / step), d = new Float32Array(n);
+  const OUT = resolve(dirname(fileURLToPath(import.meta.url)), '../out');
+  for (const [name] of SECTIONS) { const f = `${OUT}/scene-${name}.events.json`; if (!existsSync(f)) continue;
+    for (const e of JSON.parse(readFileSync(f, 'utf8'))) { const t = S(name, e.t), i = Math.floor(t / step); if (i < 0 || i >= n) continue; d[i] += e.type === 'hit' ? (e.heavy ? 1.4 : 1) : e.type === 'skill' ? 2 : e.type === 'land' ? .6 : 0; } }
+  const sm = new Float32Array(n); for (let i = 0; i < n; i++) { let a = 0, w = 0; for (let k = -12; k <= 12; k++) { const j = i + k; if (j < 0 || j >= n) continue; const g = Math.exp(-k * k / 40); a += d[j] * g; w += g; } sm[i] = a / w; }
+  const L = Array.from(sm, (x) => Math.min(3, .5 + x * 2.2));
+  return (t) => { if (t < S('act1', 0)) return .3; if (t >= HUSH[0] && t < IMPACT) return 0; if (t >= S('act6', 0) && t < HUSH[0]) return 1 + 2 * Math.min(1, (t - S('act6', 0)) / 12);
+    if (t >= S('epilogue', 0)) return .5; const i = Math.min(n - 1, Math.floor(t / step)); return L[i]; };
+})();
 
 /* ---------- instruments ---------- */
 function qin(f, {decay = .9965, len = 4, seed = 1} = {}) {
@@ -79,7 +86,7 @@ melody(S('act3', 2), THEME, 'qin', {gain: .35});
 melody(S('act3', 20), THEME.slice(0, 8), 'erhu', {gain: .2});
 melody(S('act4', 3), THEME.slice(4), 'erhu', {gain: .22, shift: -12});
 melody(S('act5', 27), THEME.slice(0, 7), 'erhu', {gain: .22, shift: 12});
-melody(S('act6', 12), THEME, 'qin', {gain: .45});
+melody(S('act6', 22), THEME, 'qin', {gain: .45});
 melody(S('epilogue', 1), THEME, 'erhu', {gain: .18});
 
 /* ---------- rhythm on the one global grid; density follows intensity ---------- */
@@ -93,15 +100,19 @@ for (let t = 0, k = 0; t < TOTAL; t += BEAT / 2, k++) {
 /* qin ripples in the bamboo, woodblock clock in the duel */
 for (let t = S('act3', 2), k = 0; t < S('act3', 19); t += BEAT / 2, k++) { const c = chordAt(t); add(B, t, t + 3, qin(mf(c[2 + k % 3] + 24), {len: 2.5, seed: k + 300}), {pan: Math.sin(k) * .5, gain: .16}); }
 /* tremolo strings for the standoffs */
-for (const [a, b] of [[S('act2', 32.2), S('act2', 37)], [S('act5', 21), S('act6', 3.4)]]) {
+for (const [a, b] of [[S('act6', 0), HUSH[0]]]) {
   const lp = new Biquad('lp', 1500, .7), ph = [0, 0, 0, 0, 0];
   add(B, a, b, (lt, t) => { const c = chordAt(t); let s = 0; for (let i = 0; i < 5; i++) { ph[i] = (ph[i] + mf(c[i] + 12) / SR) % 1; s += 2 * ph[i] - 1; } return lp.run(s / 5) * (.55 + .45 * Math.sin(2 * Math.PI * 11 * lt)) * smooth(0, 1, lt) * (1 - smooth(b - a - .3, b - a, lt)); }, {gain: .3});
 }
+/* a drum hit under every named technique and every heavy landing, read from the fight's events */
+{ const OUT = resolve(dirname(fileURLToPath(import.meta.url)), '../out');
+  for (const [name] of SECTIONS) { const f = `${OUT}/scene-${name}.events.json`; if (!existsSync(f)) continue;
+    for (const e of JSON.parse(readFileSync(f, 'utf8'))) if ((e.type === 'skill' && e.kind !== 'beam') || (e.type === 'land' && e.big)) { const t = S(name, e.t); if (t < HUSH[0] - .2 || t > IMPACT + .5) add(B, t, t + 4, taiko({big: 1.5, seed: Math.floor(t * 7)}), {gain: .8}); } } }
 /* the big drum hits on the story beats */
-for (const [t, big, g] of [[S('act1', 32.55), 1.6, 1], [S('act3', 28.45), 1.8, 1.1], [S('act5', 21.6), 1.4, .9], [IMPACT, 2.2, 1.3]]) add(B, t, t + 5, taiko({big, seed: Math.floor(t)}), {gain: g});
+for (const [t, big, g] of [[IMPACT, 2.2, 1.3]]) add(B, t, t + 5, taiko({big, seed: Math.floor(t)}), {gain: g});
 /* after the impact: the chord turns to D major, the only time it does */
 { const lp = new Biquad('lp', 2500, .7), ph = new Float64Array(6); const DM = [38, 45, 50, 54, 57, 62];
-  add(B, IMPACT, S('act6', 22), (lt) => { let s = 0; for (let i = 0; i < 6; i++) { ph[i] = (ph[i] + mf(DM[i]) / SR) % 1; s += 2 * ph[i] - 1; } return lp.run(s / 6) * smooth(0, .08, lt) * (1 - smooth(10, 18, lt)) * 1.6; }, {gain: .4}); }
+  add(B, IMPACT, S('act6', 32), (lt) => { let s = 0; for (let i = 0; i < 6; i++) { ph[i] = (ph[i] + mf(DM[i]) / SR) % 1; s += 2 * ph[i] - 1; } return lp.run(s / 6) * smooth(0, .08, lt) * (1 - smooth(10, 18, lt)) * 1.6; }, {gain: .4}); }
 
 /* the hush before the impact is total silence; a slow fade-in at the start and out at the end; gentle compressor + soft clip */
 for (let i = 0; i < B[0].length; i++) {

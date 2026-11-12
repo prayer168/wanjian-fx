@@ -4,13 +4,13 @@ import {buildAct2} from '../act2.js';
 import {pathShot} from '../cam.js';
 import {makeGoldenBell, makeSparks} from '../fx.js';
 import {rng, fbm} from '../util.js';
-import {makeCast} from '../cast.js';
-import {loadPeople} from '../people.js';
+import {stageFight} from '../director.js';
+import {makeSwordStorm, makeThousandHands} from '../skills.js';
 
 /* Act VI — 雙鐘共鳴. F1 the frozen instant on the tower top, F2 impact frame then the golden bell and the bronze bell ring together,
    F3 the shockwave rolls a wave through every roof of the city, lanterns die and relight, F4 the cloud deck is blown open into a ring of stars.
-   Timeline (seconds, act time): impact at T0 = 4.0. */
-const T0 = 4.0, SPEED = 55;
+   Timeline (seconds, act time): 萬劍歸宗 and 千手如來掌 build for 10 s, the frozen instant, impact at T0 = 14. */
+const T0 = 14.0, SPEED = 55;
 
 /* patch a set material: roofs lift as the ring passes (瓦浪); emissives die inside the ring and come back with a slower second ring */
 function patchCity(mat, uni, {lift = false, glow = false}) {
@@ -30,7 +30,8 @@ function patchCity(mat, uni, {lift = false, glow = false}) {
   mat.needsUpdate = true;
 }
 
-export default async function act6({scene, mats, moonL, hemi, bloom, grade, renderer}) {
+export default async function act6(ctx) {
+  const {scene, mats, moonL, hemi, bloom, grade, renderer} = ctx;
   const moonDir = new THREE.Vector3(.62, .12, -.78).normalize();
   scene.fog = new THREE.FogExp2(0, .0030); scene.fog.color.setRGB(...HOR);
   const sky = buildSky(scene, moonDir);
@@ -89,17 +90,30 @@ export default async function act6({scene, mats, moonL, hemi, bloom, grade, rend
   /* the two on the top floor, facing across the middle bay, the moon behind: the sword point frozen an inch from the monk's brow,
      then the monk's double palm and the bell take the blow and the swordsman is thrown back to the rail */
   const F6 = top.y + .3, at = (x, z = 1.8) => new THREE.Vector3(C.x + x, F6, C.z + z);
-  const cast = makeCast(scene, {wind: [-.5, 0, .2], people: await loadPeople()});
-  cast.S.track([{t: 0, pose: 'thrust', at: at(.75), face: 1, speed: 0, off: .5},
-    {t: T0 + .02, pose: 'hit', to: at(2.3, 2.3), move: .45, face: 1, ease: 'out', blend: .05}, {t: T0 + 1.2, pose: 'standoff', face: 1}]);
-  cast.M.track([{t: 0, pose: 'palm', at: at(-.75), face: 1, speed: 0, off: .3},
-    {t: T0 - .12, pose: 'palm', face: 1, off: .38, blend: .05, fx: [{t: .12, type: 'bell', big: true}]}, {t: T0 + 1.6, pose: 'horse', face: 1}]);
-  const events = cast.bake();
-
   const V = (x, y, z) => [C.x + x, C.y + y, C.z + z];
+  const topG = () => F6;
+  const beats = [
+    {d: 2.4, S: 'S_spell_two_hand_sword', M: 'M_praying', shot: 'low', gap: 3, vo: [['f1', .1]], fov: 50},
+    {d: 2.6, S: {clip: 'S_spell_two_hand_sword', off: .6, speed: .3}, M: {clip: 'M_praying', off: 1}, shot: 'crane', fov: 62},
+    {d: 2.2, S: {clip: 'S_gs_pose_idle'}, M: {clip: 'M_summon', off: .5}, shot: 'closeM', vo: [['f2', .1]]},
+    {d: 2.8, S: {clip: 'S_gs_pose_idle', off: 1}, M: {clip: 'M_cast_wide', off: .4}, shot: 'low', fov: 58, crash: 2.3},
+    /* F1 the frozen instant: the blade an inch from his brow, the push in down the middle bay */
+    {d: 4, S: {clip: 'S_gs_power_slash', off: .78, speed: .015}, M: {clip: 'M_two_palm_push', off: 1.25, speed: .015}, gap: 1.3,
+      cam: (lt, c, st, dur) => { const u = Math.min(1, lt / dur), e = u * (2 - u); c.position.set(C.x + .1, F6 + 1.6 - e * .2, C.z + 1.8 + 6.2 - e * 1.8); c.lookAt(C.x - .1 * e, F6 + 1.45, C.z + 1.8); c.fov = 30 - 6 * e; }},
+    {d: 3, S: {clip: 'X_hit_flip_back', off: .2}, M: {clip: 'M_two_palm_push', off: 2}, gap: 3.2},
+    {d: 6, S: {clip: 'X_get_up', off: .2}, M: 'M_praying', gap: 3},
+  ];
+  const Fx = await stageFight(ctx, {beats, center: new THREE.Vector3(C.x, F6, C.z + 1.8), yaw: Math.PI / 2, gfn: topG, wind: [-.5, 0, .2]});
+  const events = Fx.events;
+  /* 萬劍歸宗: rises from the whole city, swirls round the tower, forms the giant blade, drives down on the golden bell */
+  const storm = makeSwordStorm(scene, {n: 14000, center: new THREE.Vector3(C.x, 0, C.z), cityR: 260, giantLen: 110});
+  storm.set({rise: .4, vortex: 2.6, form: 6.4, strike: 12.4, hit: T0});
+  const hands = makeThousandHands(scene, {n: 1000}); hands.set(5.0, 12.8, 1.2);
+  const Gm = new THREE.Matrix4(), qd = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), Math.PI);
+
   const shots = [
     /* F1 straight down the middle bay toward the moon: push in on the frozen sword point */
-    Object.assign(pathShot('still', 4, [V(.1, 1.15, 6.2), V(.05, 1.0, 4.4)], [V(0, .55, 1.8), V(-.4, .65, 1.8)], {fov: [30, 24], curve: (u) => u * (2 - u)}), {focus: C}),
+    ...Fx.shots.slice(0, 5).map((x) => Object.assign(x, {focus: C})),
     Object.assign(pathShot('impact', 4, [V(-38, 6, 34), V(-42, 7, 37)], [V(0, 1, 0), V(0, 2, 0)], {fov: [34, 36], shake: .25}), {focus: C}),
     Object.assign(pathShot('pullout', 8, [V(30, 14, 34), V(110, 70, 140), V(240, 200, 330)], [V(0, 0, 0), V(-10, -10, -10), V(-30, -20, -30)], {fov: [40, 46], curve: (u) => 1 - Math.pow(1 - u, 2.4)}), {focus: C}),
     Object.assign(pathShot('sky', 6, [V(14, 4, 14), V(14, 6, 14)], [V(24, 160, 0), V(18, 170, -6)], {fov: [62, 66]}), {focus: C}),
@@ -110,7 +124,11 @@ export default async function act6({scene, mats, moonL, hemi, bloom, grade, rend
     moonDir, sky, shots, shadowAhead: 30, events,
     update(t, lt, sh, cam) {
       if (cur !== sh) { cur = sh; set.seat(sh.focus); }
-      cast.update(t, cam); for (const A of cast.all) if (A.shown !== (sh.name !== 'sky')) A.show(sh.name !== 'sky');
+      Fx.update(t, cam); for (const A of Fx.cast.all) if (A.shown !== (sh.name !== 'sky')) A.show(sh.name !== 'sky');
+      /* the giant blade hangs point-down high over the tower, then drives down onto the golden bell */
+      const k = THREE.MathUtils.smoothstep(t, 12.4, T0), tipY = (C.y + 260) * (1 - k * k) + (C.y + 11) * k * k;
+      Gm.compose(new THREE.Vector3(C.x, tipY + 110, C.z), qd, new THREE.Vector3(1, 1, 1)); storm.update(t, Gm); storm.mesh.visible = t < T0 + 3;
+      hands.update(t, Fx.cast.M.root, Fx.cast.M.yaw, new THREE.Vector3(C.x, tipY, C.z)); hands.mesh.visible = t < T0 + .5;
       const dt = t - T0, R1 = dt > 0 ? dt * SPEED : -100, R2 = dt > 2.5 ? (dt - 2.5) * SPEED * .75 : -100;
       uni.uR.value = R1; uni.uR2.value = R2;
       /* the frozen instant: no wind, no flicker; after impact the chimes and the great bell swing hard */

@@ -2,13 +2,12 @@ import * as THREE from 'three';
 import {buildSky, buildMountains, HOR} from '../sky.js';
 import {buildAct2} from '../act2.js';
 import {pathShot, orbitShot, ease} from '../cam.js';
-import {makeCast} from '../cast.js';
-import {loadPeople} from '../people.js';
-import {along} from '../fight.js';
+import {stageFight} from '../director.js';
 import {makeFlutter} from '../fx.js';
 
 /* Act V — the seven-tier bell tower in the city: low hero angle, spiral climb, the great bell at the top */
-export default async function act5({scene, mats, moonL, bloom, grade}) {
+export default async function act5(ctx) {
+  const {scene, mats, moonL, bloom, grade} = ctx;
   const moonDir = new THREE.Vector3(.55, .42, -.72).normalize();
   scene.fog = new THREE.FogExp2(0, .0036); scene.fog.color.setRGB(...HOR);
   const sky = buildSky(scene, moonDir);
@@ -19,34 +18,27 @@ export default async function act5({scene, mats, moonL, bloom, grade}) {
   /* drifting petals of ash/paper caught in the high wind around the tower */
   const flakes = makeFlutter(scene, {count: 500, box: [50, 40, 50], color: [.30, .26, .22], size: [.1, .07], fall: .4, drift: [2.2, .6]});
 
-  /* E2 the climb: they bound round the galleries, tier after tier, always on the side facing the orbiting camera;
-     E3 the summit: on the open top floor, in front of the great bell, sword raised against horse stance */
-  const cast = makeCast(scene, {wind: [-2, 0, .6], people: await loadPeople()});
-  const A0 = .4, A1 = .4 + Math.PI * 1.6, camA = (t) => A0 + (A1 - A0) * ease(Math.min(1, Math.max(0, (t - 8) / 13)));
-  const gal = (k) => ({y: T.tiers[k].y + .16, h: T.tiers[k].s / 2 + .75});
-  const onGal = (k, th) => { const g = gal(k), R = g.h / Math.max(Math.abs(Math.sin(th)), Math.abs(Math.cos(th))); return [c.x + Math.sin(th) * R, g.y, c.z + Math.cos(th) * R]; };
-  const F6 = T.tiers[6].y + .3, dv = new THREE.Vector3(0, 0, -1), pv = new THREE.Vector3(1, 0, 0);   // face the moon (-z), in the middle bay between the pavilion columns
-  const apex = (k) => new THREE.Vector3(c.x, F6, c.z).addScaledVector(dv, -1.8).addScaledVector(pv, k);
-  const climb = (lag, lead) => {
-    const segs = [{t: 0, pose: 'idle', at: onGal(1, camA(8) + lead)}];
-    for (let k = 1; k <= 5; k++) {
-      const t0 = 8 + lag + (k - 1) * 2.4, t1 = t0 + 1.6, t2 = t1 + .8;
-      segs.push(...along(t0, t1, (t) => onGal(k, camA(t) + lead), 'run', {step: .2, yaw: (t) => camA(t) + lead + Math.PI / 2}));
-      segs.push({t: t1, pose: 'tuck', at: onGal(k, camA(t1) + lead), to: k < 5 ? onGal(k + 1, camA(t2) + lead) : apex(lead > .3 ? .75 : -.75).toArray(), arc: 1.6, move: .8, blend: .12});
-    }
-    return segs;
-  };
-  const S = climb(0, .42), M = climb(.45, .2);
-  cast.S.track([...S, {t: 21.6, pose: 'land', at: apex(.75), face: 1, blend: .08}, {t: 22.6, pose: 'standoff', face: 1}]);
-  cast.M.track([...M, {t: 22.05, pose: 'land', at: apex(-.75), face: 1, big: true, blend: .08}, {t: 23.05, pose: 'horse', face: 1}]);
-  const events = cast.bake();
-
+  /* 第五幕：鐘樓。平手 — 平台上旋風腿對劍陣，鐵布衫硬接；兩人一躍上塔頂，在大鐘前對峙 */
+  const F6 = T.tiers[6].y + .3, ter = () => 3.5, topG = () => F6;
+  const beats = [
+    {d: 2.0, S: {clip: 'S_swordplay_idle', off: 1}, M: 'M_fight_idle', shot: 'wide', gap: 4},
+    {d: 2.0, S: {clip: 'S_gs_to_block'}, M: {clip: 'M_flying_sidekick'}, shot: 'low', gap: 1.6, move: -1},
+    {d: 2.2, S: 'S_gs_combo_slash', M: 'M_inward_block', shot: 'track', gap: 1.4, move: 1.4},
+    {d: 2.4, S: {clip: 'S_spell_two_hand_sword'}, M: {clip: 'M_cast_wide', off: .4}, shot: 'overS', gap: 3, vo: [['e2', .05], ['e1', 1.0]], sk: [{kind: 'fan', at: .2, n: 48, fire: .9, span: 1.4}, {kind: 'bell', at: 1.0, d: 1.4}]},
+    {d: 1.8, S: 'S_gs_jump_attack', M: 'M_high_block', shot: 'orbit', slow: .3, gap: 1.6, a0: -.5},
+    {d: 1.8, S: {clip: 'X_hit_reaction'}, M: {clip: 'M_aerial_360_kick', off: .2}, shot: 'medium'},
+    /* one bound each from the terrace to the top floor */
+    {d: 2.6, S: {clip: 'X_jump_from_sprint', air: true, arc: 14, speed: .4}, M: {clip: 'X_jump_from_sprint', air: true, arc: 15, speed: .4}, shot: 'crane', dest: new THREE.Vector3(c.x, F6, c.z + 1.8), gfnTo: topG, gap: 1.6},
+    {d: 1.6, S: {clip: 'X_landing', off: .2}, M: {clip: 'X_hard_landing', off: .3, big: true}, shot: 'low'},
+    {d: 2.6, S: {clip: 'S_gs_pose_idle'}, M: 'M_fight_idle', shot: 'closeS', vo: [['e3', .2]]},
+    {d: 2.2, S: {clip: 'S_gs_pose_idle', off: 1.5}, M: {clip: 'M_fight_idle', off: 1}, shot: 'closeM', vo: [['e4', .1]]},
+  ];
+  const Fx = await stageFight(ctx, {beats, center: new THREE.Vector3(c.x, 3.5, c.z + 9), yaw: Math.PI / 2, gfn: ter, t0: 6, film0: 6, wind: [-2, 0, .6], side: -1});
+  const events = Fx.events;
   const shots = [
-    Object.assign(pathShot('rise', 8, [[c.x - 26, 1.6, c.z + 40], [c.x - 20, 1.2, c.z + 33]], [[c.x, top * .55, c.z], [c.x, top * .62, c.z]], {fov: [40, 36]}), {focus: new THREE.Vector3(c.x, 4, c.z + 14)}),
-    Object.assign(orbitShot('spiral', 13, [c.x, 0, c.z], {a: [.4, .4 + Math.PI * 1.6], r: [27, 18], y: [6, top - 2], look: [4, top - 6], fov: [42, 38]}), {focus: new THREE.Vector3(c.x, 20, c.z)}),
-    /* E3 summit standoff: hanging off the pavilion eave, both in profile before the bell */
-    Object.assign(pathShot('summit', 6, [apex(0).add(new THREE.Vector3(.2, 1.45, 3.6)).toArray(), apex(0).add(new THREE.Vector3(.05, 1.4, 2.9)).toArray()], [apex(0).setY(F6 + 1.25).toArray(), apex(0).setY(F6 + 1.3).toArray()], {fov: [40, 36]}), {focus: new THREE.Vector3(c.x, F6, c.z)}),
-    Object.assign(pathShot('bell', 7, [[c.x + 7.5, T.bell.y - .4, c.z + 6.5], [c.x + 5.6, T.bell.y - .9, c.z + 5.4]], [[c.x, T.bell.y - 1.4, c.z], [c.x, T.bell.y - 1.3, c.z]], {fov: [36, 32]}), {focus: new THREE.Vector3(c.x, T.bell.y, c.z)}),
+    Object.assign(pathShot('rise', 6, [[c.x - 26, 1.6, c.z + 40], [c.x - 21, 1.3, c.z + 34]], [[c.x, 6, c.z + 9], [c.x, 9, c.z + 6]], {fov: [40, 36]}), {focus: new THREE.Vector3(c.x, 4, c.z + 14)}),
+    ...Fx.shots.map((s, i) => Object.assign(s, {focus: i < 6 ? new THREE.Vector3(c.x, 4, c.z + 12) : new THREE.Vector3(c.x, F6, c.z)})),
+    Object.assign(pathShot('bell', 5, [[c.x + 7.5, T.bell.y - .4, c.z + 6.5], [c.x + 5.6, T.bell.y - .9, c.z + 5.4]], [[c.x, T.bell.y - 1.4, c.z], [c.x, T.bell.y - 1.3, c.z]], {fov: [36, 32]}), {focus: new THREE.Vector3(c.x, T.bell.y, c.z), t0: Fx.D.end}),
   ];
   let cur = null;
   return {
@@ -56,9 +48,7 @@ export default async function act5({scene, mats, moonL, bloom, grade}) {
       for (const L of set.lights) L.intensity = 22 * (1 + .08 * Math.sin(t * 9 + L.position.x));
       set.bells.update(t, 1.4, sh.name === 'bell' ? .4 : 0);
       flakes.update(t, cam); flakes.mesh.visible = sh.name !== 'rise';
-      for (const A of cast.all) if (A.shown !== (sh.name !== 'rise')) A.show(sh.name !== 'rise');
-      cast.update(t, cam);
-      const kk = cast.kick(t); cam.position.x += Math.sin(t * 91) * kk.shake; cam.position.y += Math.sin(t * 73) * kk.shake; grade.uniforms.uFlash.value = kk.flash * .3;
+      Fx.update(t, cam);
     },
   };
 }

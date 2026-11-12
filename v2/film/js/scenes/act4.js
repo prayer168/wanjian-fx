@@ -6,9 +6,7 @@ import {addSway} from '../nature.js';
 import {makeRain, makeSplashes, makeMist} from '../fx.js';
 import {pathShot, orbitShot} from '../cam.js';
 import {canvasTex, rng, fbm, M} from '../util.js';
-import {makeCast} from '../cast.js';
-import {loadPeople} from '../people.js';
-import {seq} from '../fight.js';
+import {stageFight} from '../director.js';
 
 /* rain-ruffled canal: planar reflection distorted by swell + expanding raindrop rings, fresnel mix with deep water */
 const WaterShader = {
@@ -38,7 +36,8 @@ const WaterShader = {
 };
 
 /* Act IV — rain at night on the canal, arch bridge, moored boats, willows, lit tea-houses on both banks */
-export default async function act4({scene, hemi, moonL, bloom, renderer, mats, grade}) {
+export default async function act4(ctx) {
+  const {scene, hemi, moonL, bloom, renderer, mats, grade} = ctx;
   const HOR = [.020, .022, .034];
   const moonDir = new THREE.Vector3(.5, .6, -.62).normalize();
   scene.fog = new THREE.FogExp2(0, .011); scene.fog.color.setRGB(...HOR);
@@ -112,23 +111,31 @@ export default async function act4({scene, hemi, moonL, bloom, renderer, mats, g
   /* flashes of lightning: a double flicker */
   const flash = (t) => { let f = 0; for (const t0 of [3.2, 15.6, 21.9]) { const d = t - t0; if (d > 0 && d < .5) f = Math.max(f, Math.exp(-d * 18) + .6 * Math.exp(-Math.max(0, d - .14) * 14) * (d > .14 ? 1 : 0)); } return f; };
 
-  /* D3-D5 on the crown of the bridge: a fast exchange in the downpour, then both spring up out of the rain */
-  const cast = makeCast(scene, {wind: [1.2, 0, -.6], people: await loadPeople()});
-  const gd = (x, z) => bridge.yd(z) + .1, P = (z) => new THREE.Vector3(0, gd(0, z), z);
-  const fast = {face: 1, gfn: gd, speed: 1.35, blend: .12};
-  cast.S.track([{t: 0, pose: 'standoff', at: P(-1.15), face: 1, gfn: gd},
-    ...seq(17.3, P(-1.15), [['slash1', .75], ['slash2', .78], ['punch', .7], ['thrust', .82, {to: P(-.8)}], ['slash3', .85], ['block', .95], ['slash1', .75], ['palm', .95], ['hit', .8, {to: P(-2.2)}], ['standoff', 2.2]], fast),
-    {t: 29.4, pose: 'jump', at: P(-2.2), face: 1, gfn: gd}, {t: 29.95, pose: 'tuck', at: P(-2.2), to: [0, 34, 6], arc: 6, move: 2.4, blend: .1}]);
-  cast.M.track([{t: 0, pose: 'horse', at: P(1.15), face: 1, gfn: gd},
-    ...seq(17.25, P(1.15), [['block', .9], ['block', .8], ['punch', .72], ['block', .85], ['block', .85], ['punch', .8, {to: P(.85)}], ['block', .8], ['palm', 1.0], ['slash3', .9], ['horse', 2.0]], {...fast, speed: 1.3}),
-    {t: 29.55, pose: 'jump', face: 1, gfn: gd}, {t: 30.1, pose: 'tuck', at: P(1.15), to: [0, 34, 9], arc: 6, move: 2.4, blend: .1}]);
-  const events = cast.bake();
+  /* 第四幕：雨夜石橋。劍客勝 — 斷水掀起水幕，般若掌劈開，近身十二連擊，劍尖劃斷念珠 */
+  const gd = (x, z) => bridge.yd(z) + .1;
+  const beats = [
+    {d: 2.2, S: {clip: 'S_swordplay_idle', off: 2.5}, M: 'M_fight_idle', shot: 'wide', gap: 4},
+    {d: 1.6, S: 'S_gs_low_slash', M: 'M_low_block', shot: 'low', gap: 2.2, vo: [['d1', .1]], sk: [{kind: 'crescent', at: .75, size: 4.5, up: [0, 1, 0], dy: -.9, dist: 4}]},
+    {d: 2.0, S: {clip: 'S_gs_pose_idle'}, M: {clip: 'M_two_palm_push', off: .8}, shot: 'overM', vo: [['d2', .05]], sk: [{kind: 'ring', at: .5, size: 2, dur: .8, dist: 3}, {kind: 'palm', at: .55, size: 1.6, dist: 2.5}]},
+    /* the twelve-hit exchange: short beats, hand-held, cutting on every blow */
+    {d: 1.2, S: {clip: 'S_two_hand_sword_combo', off: .4}, M: 'M_high_block', shot: 'closeS', gap: 1.3, shake: .03},
+    {d: 1.1, S: 'S_gs_to_block', M: {clip: 'M_quad_punch', off: .4}, shot: 'closeM', shake: .03},
+    {d: 1.2, S: {clip: 'S_one_hand_sword_combo', off: .8}, M: 'M_inward_block', shot: 'overS', shake: .03},
+    {d: 1.0, S: 'S_gs_hilt_melee', M: {clip: 'X_hit_reaction'}, shot: 'medium', shake: .03},
+    {d: 1.2, S: {clip: 'S_gs_to_block'}, M: {clip: 'M_elbow_uppercut', off: .6}, shot: 'dutch', shake: .03},
+    {d: 1.4, S: {clip: 'S_gs_spin_kick'}, M: {clip: 'M_low_block'}, shot: 'overhead'},
+    {d: 2.0, S: 'S_gs_downward_slash', M: {clip: 'X_hit_reaction'}, shot: 'orbit', slow: .2, sk: [{kind: 'crescent', at: .6, size: 3, up: [0, 1, 0]}, {kind: 'flash', at: .62}]},
+    {d: 2.4, S: {clip: 'S_gs_pose_idle', off: 1}, M: {clip: 'M_praying'}, shot: 'closeS', gap: 2.6, vo: [['d3', .2]]},
+    {d: 2.2, S: {clip: 'S_gs_pose_idle', off: 2}, M: {clip: 'M_praying', off: 1.2}, shot: 'closeM', vo: [['d4', .3]]},
+    {d: 2.0, S: {clip: 'X_jump_from_sprint', air: true, arc: 9}, M: {clip: 'X_jump_from_sprint', air: true, arc: 9}, shot: 'crane', gap: 3, move: 2},
+  ];
+  const Fx = await stageFight(ctx, {beats, center: new THREE.Vector3(0, gd(0, 0), 0), yaw: 0, gfn: gd, t0: 12, film0: 12, wind: [1.2, 0, -.6], lift: 1.1});
+  const events = Fx.events;
 
   const shots = [
-    Object.assign(pathShot('wide', 9, [[-46, 3.2, 3.5], [-38, 3.0, 2.2]], [[0, 2.5, 0], [0, 2.2, 0]], {fov: [34, 31]}), {focus: new THREE.Vector3(-8, 2, 0)}),
-    Object.assign(pathShot('water', 8, [[-30, WY + .55, .8], [-12, WY + .5, .3], [6, WY + .6, -.2]], [[0, WY + 1.2, 0], [20, WY + 1.4, 0], [40, WY + 1.6, 0]], {fov: [38, 40]}), {focus: new THREE.Vector3(-4, 0, 0)}),
-    Object.assign(pathShot('clash', 8, [[1.85, gd(0, -2.8) + 1.5, -2.8], [1.9, gd(0, -.6) + 1.35, -.6], [1.7, gd(0, 1.4) + 1.45, 1.4]], [[-.6, 6.1, .2], [-.5, 6.0, 0], [-.6, 6.1, -.3]], {fov: [36, 32], shake: .015}), {focus: new THREE.Vector3(0, 5, 0)}),
-    Object.assign(pathShot('deck', 7, [[-1.2, 4.6, -9], [-.6, 6.1, -4.5]], [[.4, 5.6, 6], [.8, 5.2, 12]], {fov: [36, 34], shake: .02}), {focus: new THREE.Vector3(0, 4, 0)}),
+    Object.assign(pathShot('wide', 6, [[-46, 3.2, 3.5], [-40, 3.0, 2.6]], [[0, 5.5, 0], [0, 5.5, 0]], {fov: [24, 21]}), {focus: new THREE.Vector3(-8, 2, 0)}),
+    Object.assign(pathShot('water', 6, [[-22, WY + .55, .8], [-8, WY + .5, .3]], [[0, WY + 3, 0], [0, WY + 6, 0]], {fov: [38, 40]}), {focus: new THREE.Vector3(-4, 0, 0)}),
+    ...Fx.shots.map((s) => Object.assign(s, {focus: new THREE.Vector3(0, 4, 0)})),
   ];
   let cur = null;
   return {
@@ -139,10 +146,7 @@ export default async function act4({scene, hemi, moonL, bloom, renderer, mats, g
       for (const L of pl) L.intensity = 18 * (1 + .1 * Math.sin(t * 8 + L.position.x * 3));
       const f = flash(t); sky.uni.uFlash.value = f; hemi.intensity = .35 + f * 2.5;
       rain.update(t, cam); splash.update(t, cam); mist.update(t);
-      for (const A of cast.all) if (A.shown !== (sh.name === 'clash' || sh.name === 'deck')) A.show(sh.name === 'clash' || sh.name === 'deck');
-      cast.update(t, cam);
-      const kk = cast.kick(t); cam.position.x += Math.sin(t * 91) * kk.shake; cam.position.y += Math.sin(t * 73) * kk.shake;
-      grade.uniforms.uFlash.value = kk.flash * .35;
+      Fx.update(t, cam);
     },
   };
 }

@@ -95,6 +95,6 @@ function draw(t) {
 
 window.__reelFrames = Math.round(total * 60);
 /* the fight's sound cues for the audio score: every hit, block, landing and bell, in section time */
-window.__events = (S.events || []).map((e) => ({t: +e.t.toFixed(3), type: e.type, who: e.who, heavy: !!e.heavy, big: !!e.big}));
+window.__events = (S.events || []).map((e) => ({t: +e.t.toFixed(3), type: e.type, who: e.who, heavy: !!e.heavy, big: !!e.big, id: e.id, kind: e.kind}));
 window.__renderFrame = (i) => { draw(i / 60); return i; };
 if (!RENDER) { const t0 = performance.now(); const loop = () => { draw(((performance.now() - t0) / 1000) % total); requestAnimationFrame(loop); }; loop(); }

@@ -542,3 +542,7 @@ export function makeCast(sc,{wind=[-1.6,0,.35],people=null}={}){
   };
   return cast;
 }
+
+/* shared with the mocap cast */
+export {Trail, makeBursts};
+export function useScene(s){scene=s;}

@@ -1,7 +1,7 @@
 // Final mix with ffmpeg: effects/ambience (-3 dB), the continuous score, and the voice lines placed at their cue times.
 // Voices get a short room tail; the score ducks under every line (side-chain compression). Output: out/audio/mix.wav
 import {spawnSync} from 'node:child_process';
-import {existsSync} from 'node:fs';
+import {existsSync, readFileSync} from 'node:fs';
 import {dirname, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {SECTIONS} from './sections.mjs';
@@ -9,7 +9,10 @@ import {LINES} from './lines.mjs';
 
 const A = resolve(dirname(fileURLToPath(import.meta.url)), '../out/audio');
 const START = {}; { let t = 0; for (const [n, l] of SECTIONS) { START[n] = t; t += l; } }
-const lines = LINES.filter((L) => existsSync(`${A}/vo/${L.id}.wav`) && START[L.sec] !== undefined);
+/* cue times: from the scenes' event lists when the renderer wrote them (they follow the choreography), else lines.mjs */
+const cue = {};
+for (const [n] of SECTIONS) { const f = `${A}/../scene-${n}.events.json`; if (existsSync(f)) for (const e of JSON.parse(readFileSync(f, 'utf8'))) if (e.type === 'vo') cue[e.id] = {sec: n, t: e.t}; }
+const lines = LINES.map((L) => ({...L, ...(cue[L.id] || {})})).filter((L) => existsSync(`${A}/vo/${L.id}.wav`) && START[L.sec] !== undefined);
 const args = ['-y', '-loglevel', 'error', '-i', `${A}/score.wav`, '-i', `${A}/music.wav`];
 for (const L of lines) args.push('-i', `${A}/vo/${L.id}.wav`);
 let f = '[0:a]volume=0.71[fx];';

@@ -6,12 +6,12 @@ import {terrain, addSway} from '../nature.js';
 import {makeSparks, makeSmoke, makeGoldenBell} from '../fx.js';
 import {pathShot} from '../cam.js';
 import {canvasTex, grain, rng, fbm} from '../util.js';
-import {makeCast} from '../cast.js';
-import {loadPeople} from '../people.js';
+import {stageFight} from '../director.js';
 
 /* Act I — the wasteland after v1's duel: dusk turning to night, ten thousand spent arrows,
    the golden bell's ghost dissolving into dust, embers and smoke, the city wall far to the west. */
-export default async function act1({scene, hemi, moonL, bloom, renderer, mats, grade}) {
+export default async function act1(ctx) {
+  const {scene, hemi, moonL, bloom, renderer, mats, grade} = ctx;
   const HOR = [.085, .048, .065];
   const moonDir = new THREE.Vector3(.8, .16, .35).normalize(), sun = new THREE.Vector3(-.85, .02, .45).normalize();
   scene.fog = new THREE.FogExp2(0, .0030); scene.fog.color.setRGB(...HOR);
@@ -72,7 +72,8 @@ export default async function act1({scene, hemi, moonL, bloom, renderer, mats, g
   const west = new THREE.Vector3(-1, 0, -.12).normalize(), side = new THREE.Vector3(-west.z, 0, west.x);
   const at = (p, d, k = 0) => { const q = p.clone().addScaledVector(west, d).addScaledVector(side, k); q.y = G(q.x, q.z); return q; };
   const camStomp = M0.clone().addScaledVector(side, -4.2).addScaledVector(west, 2.6), camSword = S0.clone().add(M0.clone().sub(S0).setY(0).normalize().multiplyScalar(3.4)).addScaledVector(new THREE.Vector3(-(M0.z - S0.z), 0, M0.x - S0.x).normalize(), 3.0);
-  const clear = [[camStomp, 3.2], [camSword, 2.2]];
+  const FC = new THREE.Vector3(1.8, 0, .75);
+  const clear = [[camStomp, 3.2], [camSword, 2.2], [FC, 7.5], [FC.clone().add(new THREE.Vector3(-8, 0, -3)), 6]];
   /* spent arrows: shaft, iron head, three fletchings, vertex coloured; stuck, broken or lying */
   const part = (geo, c) => { geo = geo.toNonIndexed(); const n = geo.attributes.position.count, cc = new Float32Array(n * 3); for (let i = 0; i < n; i++) cc.set(c, i * 3); geo.setAttribute('color', new THREE.BufferAttribute(cc, 3)); return geo; };
   const vane = () => { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute([0, .58, 0, .018, .6, 0, .02, .7, 0, 0, .58, 0, .02, .7, 0, 0, .73, 0], 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array(12), 2)); g.computeVertexNormals(); return g; };
@@ -105,59 +106,39 @@ export default async function act1({scene, hemi, moonL, bloom, renderer, mats, g
 
   /* the duel's aftermath: the monk stands in the dissolving bell, the swordsman sheathes, flips away and bounds for the city;
      the monk sinks into a horse stance, stamps the earth (金剛踏) and launches after him */
-  const cast = makeCast(scene, {wind: [-1.2, 0, .3], people: await loadPeople()});
-  const S1 = at(S0, 1.8), S2 = at(S0, -11), S3 = at(S0, -60);
-  cast.S.track([
-    {t: 0, pose: 'standoff', at: S0, face: 1},
-    {t: 17.2, pose: 'idle', at: S0, face: 1},
-    {t: 24.3, pose: 'flip', at: S0, to: at(S0, -1.6), move: 1.0, face: 1, ease: 'out'},
-    {t: 25.75, pose: 'run', at: at(S0, -1.6), to: S2, gfn: G},
-    {t: 27.1, pose: 'jump', at: S2, to: at(S0, -12.4), move: .5, gfn: G},
-    {t: 27.6, pose: 'tuck', at: at(S0, -12.4), to: S3, arc: 9, gfn: G, ease: 'lin', blend: .15},
-  ]);
-  const M1 = at(M0, -70);
-  cast.M.track([
-    {t: 0, pose: 'standoff', at: M0, face: 1},
-    {t: 30.2, pose: 'horse', at: M0, face: 1, yaw: 0},
-    {t: 32.0, pose: 'jump', at: M0, yaw: Math.atan2(west.x, west.z), big: true},
-    {t: 32.62, pose: 'tuck', at: M0, to: M1, arc: 12, gfn: G, blend: .12},
-  ]);
-  const events = cast.bake();
-  void S1;
+  /* 第一幕：荒原。和尚佔上風 — 劍雨被金鐘罩擋下，大力金剛掌把劍客震飛，劍客後空翻脫身，和尚金剛踏追出 */
+  const yaw = Math.atan2(M0.x - S0.x, M0.z - S0.z);
+  const beats = [
+    {d: 2.6, S: {clip: 'S_swordplay_idle', off: 2}, M: 'M_praying', shot: 'closeS', gap: 3.6, vo: ['a1']},
+    {d: 3.0, S: {clip: 'S_gs_pose_idle'}, M: 'M_fight_idle', shot: 'closeM', vo: ['a2']},
+    {d: 1.4, S: 'S_spell_two_hand_sword', M: 'M_fight_idle', shot: 'low', vo: [['a3', .05]], sk: [{kind: 'rain', at: .5, n: 360, r: 6}]},
+    {d: 2.4, S: {clip: 'S_swordplay_idle', off: 1}, M: 'M_high_block', shot: 'overhead', sk: [{kind: 'bell', at: .2, d: 2.2}]},
+    {d: 2.6, S: 'S_two_hand_sword_combo', M: {clip: 'M_inward_block'}, shot: 'medium', gap: 1.4, move: .6, sk: [{kind: 'crescent', at: .7}, {kind: 'crescent', at: 1.35, up: [0, 1, 0]}]},
+    {d: 2.0, S: 'S_gs_power_slash', M: 'M_low_block', shot: 'orbit', slow: .3, sk: [{kind: 'crescent', at: .8, size: 3.2}]},
+    {d: 1.8, S: {clip: 'S_gs_hilt_melee'}, M: {clip: 'M_four_punch_combo', off: .3}, shot: 'overS', shake: .03},
+    {d: 2.0, S: 'X_hit_reaction', M: {clip: 'M_two_palm_push', off: .9}, shot: 'overM', crash: .55, vo: [['a4', .1]], sk: [{kind: 'palm', at: .75, size: 1.7, dist: 2.2}]},
+    {d: 2.4, S: {clip: 'X_hit_flip_back', off: .15}, M: {clip: 'M_two_palm_push', off: 2.2}, shot: 'wide', gap: 5, move: -.8, vo: [['a5', .9]]},
+    {d: 1.6, S: {clip: 'X_landing', off: .3}, M: {clip: 'X_hard_landing', off: .3, big: true}, shot: 'low', gap: 4.6},
+    {d: 2.2, S: {clip: 'X_twist_flip_run'}, M: {clip: 'M_long_yell', off: .6}, shot: 'track', gap: 9, move: -3, whip: 1},
+  ];
+  const F = await stageFight(ctx, {beats, center: FC.clone().setY(G(FC.x, FC.z)), yaw, gfn: G, t0: 11, film0: 11, wind: [-1.2, 0, .3]});
+  const cast = F.cast, events = F.events;
 
-  const T = (k) => [0, 9, 16, 20, 24, 30, 35][k];
-  const v = (p, o) => p.clone().add(new THREE.Vector3(...o));
-  const dSM = M0.clone().sub(S0).setY(0).normalize(), pSM = new THREE.Vector3(-dSM.z, 0, dSM.x);
   const shots = [
-    pathShot('field', 9, [[28, hfn(28, 10) + 2.3, 10], [21, hfn(21, 7) + 2.0, 7]], [[-60, 3, -12], [-60, 3.5, -10]], {fov: [36, 33]}),
-    pathShot('arrows', 7, [[10, hfn(10, -6) + .75, -6], [7.4, hfn(7.4, -8.6) + .8, -8.6]], [[-2, .7, -2.5], [-4, .9, -4]], {fov: [30, 28], curve: (u) => u}),
-    /* A2 the swordsman, low three-quarter, slow push as he lets the blade drop */
-    pathShot('sword', 4, [camSword.clone().setY(S0.y + 1.0).toArray(), v(S0, [0, 0, 0]).addScaledVector(dSM, 2.9).addScaledVector(pSM, 2.6).setY(S0.y + 1.1).toArray()],
-      [v(S0, [0, 1.15, 0]).toArray(), v(S0, [0, 1.3, 0]).toArray()], {fov: [30, 27], curve: (u) => u}),
-    /* A3 the monk's face, the dissolving bell around him */
-    pathShot('monk', 4, [v(M0, [0, 0, 0]).addScaledVector(dSM, -3.4).addScaledVector(pSM, -1.6).setY(M0.y + 1.4).toArray(), v(M0, [0, 0, 0]).addScaledVector(dSM, -3.0).addScaledVector(pSM, -1.35).setY(M0.y + 1.48).toArray()],
-      [v(M0, [0, 1.42, 0]).toArray(), v(M0, [0, 1.5, 0]).toArray()], {fov: [22, 19], curve: (u) => u}),
-    /* A4 tracking the swordsman: flip, sprint through the arrows, leap */
-    {name: 'leap', dur: 6, cam(lt, c) { const t = T(4) + lt, r = cast.S.rootAt(t), k = THREE.MathUtils.smoothstep(lt, 3.2, 6);
-      c.position.copy(r).addScaledVector(side, 7.5 + k * 10).addScaledVector(west, -1.5 - k * 6); c.position.y = Math.max(G(c.position.x, c.position.z) + 1.3, r.y + 1.0 - k * 1.5);
-      c.up.set(0, 1, 0); c.lookAt(r.x, r.y + 1.1, r.z); c.fov = 34 + k * 6; }},
-    /* A5 low angle on the monk: horse stance, the stamp, the launch */
-    {name: 'stomp', dur: 5, cam(lt, c) { const t = T(5) + lt, r = cast.M.rootAt(t);
-      c.position.copy(camStomp); c.position.y = M0.y + .32; c.up.set(0, 1, 0);
-      c.lookAt(r.x * .5 + M0.x * .5, Math.max(M0.y + 1.5, r.y + 1.1), r.z * .5 + M0.z * .5); c.fov = 42; }},
-    pathShot('city', 8, [[34, hfn(34, 22) + 3, 22], [32, hfn(32, 24) + 15, 25]], [[-380, 4, -6], [-380, 2, -4]], {fov: [30, 26]}),
+    pathShot('field', 6, [[28, hfn(28, 10) + 2.3, 10], [23, hfn(23, 8) + 2.1, 8]], [[0, 1.5, 0], [0, 1.6, 0]], {fov: [26, 22]}),
+    pathShot('arrows', 5, [[10, hfn(10, -6) + .75, -6], [8.4, hfn(8.4, -7.6) + .8, -7.6]], [[1.8, .9, .75], [1.8, 1.1, .75]], {fov: [30, 28], curve: (u) => u}),
+    ...F.shots,
+    Object.assign(pathShot('city', 6, [[34, hfn(34, 22) + 3, 22], [32, hfn(32, 24) + 15, 25]], [[-380, 4, -6], [-380, 2, -4]], {fov: [30, 26]}), {t0: F.D.end}),
   ];
   const TOTAL = shots.reduce((a, b) => a + b.dur, 0);
   return {
     moonDir: keyDir, sky, shots, shadowAhead: 20, events,
     update(t, lt, sh, cam) {
-      const u = t / TOTAL;
+      const u = Math.min(1, t / TOTAL);
       sky.uni.uDusk.value = 1 - .55 * u; moonL.intensity = 1.6 - .7 * u;
-      uni.uT.value = t; ghostU.uT.value = t; ghostU.uFade.value = Math.max(0, .95 - u * 1.05); ghostU.uGlow.value = sh.name === 'monk' ? .15 : 1;
+      uni.uT.value = t; ghostU.uT.value = t; ghostU.uFade.value = Math.max(0, .9 - t / 12);
       dust.update(t); dust.uni.uGain.value = .5 + ghostU.uFade.value; sparks.update(t); smoke.update(t);
-      cast.update(t, cam);
-      const kk = cast.kick(t); cam.position.x += (Math.sin(t * 91) * .7 + Math.sin(t * 57)) * kk.shake; cam.position.y += Math.sin(t * 73) * kk.shake;
-      grade.uniforms.uFlash.value = kk.flash * .3;
+      F.update(t, cam);
     },
   };
 }

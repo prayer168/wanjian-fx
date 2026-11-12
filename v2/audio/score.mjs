@@ -61,16 +61,18 @@ const score = {
     at(0, 34, drone(65, 9), {gain: .08});
   },
   act6() {
-    bedL(0, 4, (s) => wind(s, {lo: 200, hi: 600, gust: 3}), ramp([[0, .4], [3.4, 0]]), .4, 161);  // the frozen instant: wind dies to nothing, ~0.5 s of silence
-    const I = 4.0;
-    at(I, 22, boom({f1: 110, f2: 26, len: 5}), {gain: 1.2});
-    at(I, 22, bell(65, {decay: 16, seed: 21}), {pan: -.15, gain: .9});              // bronze bell
-    at(I + .01, 22, bell(97.5, {decay: 13, bright: 1.6, seed: 22}), {pan: .15, gain: .7});  // golden bell, a fifth above: 雙鐘共鳴
+    const I = 14.0;
+    bedL(0, I, (s) => wind(s, {lo: 200, hi: 600, gust: 3}), ramp([[0, .5], [9, .8], [12.4, .9], [13.4, 0]]), .4, 161);  // the storm of swords howls, then dies to nothing: ~0.5 s of silence
+    at(.4, 12.4, whoosh(301, {from: 200, to: 1600, len: 6}), {gain: .35}); at(6.4, 12.4, drone(55, 31), {gain: .25});    // ten thousand blades rising and wheeling
+    at(12.4, 13.4, whoosh(302, {from: 400, to: 5000, len: 1}), {gain: .6});                                             // the giant blade comes down
+    at(I, 32, boom({f1: 110, f2: 26, len: 5}), {gain: 1.2});
+    at(I, 32, bell(65, {decay: 16, seed: 21}), {pan: -.15, gain: .9});              // bronze bell
+    at(I + .01, 32, bell(97.5, {decay: 13, bright: 1.6, seed: 22}), {pan: .15, gain: .7});  // golden bell, a fifth above: 雙鐘共鳴
     at(I, I + 3, whoosh(9, {from: 120, to: 3000, len: 2.6}), {gain: .6});
     for (let k = 0; k < 420; k++) { const t = I + .6 + Math.pow(R(), .8) * 7.5; at(t, t + .4, knock(1500 + R() * 3000, {decay: .025, seed: k}), {pan: R() * 1.8 - .9, gain: .05 * (1.3 - (t - I) / 9)}); }  // ten thousand tiles
-    bedL(I, 16, (s) => wind(s, {lo: 80, hi: 300, gust: 2}), ramp([[I, 1], [9, .6], [16, .2]]), .5, 171);
-    for (let k = 0; k < 30; k++) { const t = 10 + R() * 11; at(t, 22, chime(2000 + R() * 2000, k + 90), {pan: R() * 1.4 - .7, gain: .045}); }  // lanterns relighting, then the stars
-    bedL(16, 22, (s) => wind(s, {lo: 400, hi: 1400, gust: 5}), ramp([[16, 0], [18, .5]]), .35, 181);
+    bedL(I, I + 12, (s) => wind(s, {lo: 80, hi: 300, gust: 2}), ramp([[I, 1], [I + 5, .6], [I + 12, .2]]), .5, 171);
+    for (let k = 0; k < 30; k++) { const t = I + 6 + R() * 11; at(t, 32, chime(2000 + R() * 2000, k + 90), {pan: R() * 1.4 - .7, gain: .045}); }  // lanterns relighting, then the stars
+    bedL(I + 12, 32, (s) => wind(s, {lo: 400, hi: 1400, gust: 5}), ramp([[I + 12, 0], [I + 14, .5]]), .35, 181);
   },
   epilogue() {
     bedL(0, 16, (s) => wind(s, {lo: 180, hi: 700, gust: 6}), ramp([[0, .5], [7, .55], [16, .3]]), .5, 191);

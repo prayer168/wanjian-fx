@@ -4,12 +4,11 @@ import {terrain, bambooForest, addSway} from '../nature.js';
 import {makeFlutter, makeMist} from '../fx.js';
 import {pathShot, orbitShot} from '../cam.js';
 import {canvasTex, grain, rng, fbm} from '../util.js';
-import {makeCast} from '../cast.js';
-import {loadPeople} from '../people.js';
-import {seq} from '../fight.js';
+import {stageFight} from '../director.js';
 
 /* Act III — moonlit bamboo sea on rolling hills */
-export default async function act3({scene, hemi, moonL, bloom, renderer, grade}) {
+export default async function act3(ctx) {
+  const {scene, hemi, moonL, bloom, renderer, grade} = ctx;
   const HOR = [.030, .042, .060];
   const moonDir = new THREE.Vector3(.62, .27, -.70).normalize();
   scene.fog = new THREE.FogExp2(0, .0040); scene.fog.color.setRGB(...HOR);
@@ -37,7 +36,7 @@ export default async function act3({scene, hemi, moonL, bloom, renderer, grade})
 
   const uni = {uT: {value: 0}, uWind: {value: 1}};
   const F = new THREE.Vector3(-4, 0, .25 * Math.sin(-4 * .08)); F.y = hfn(F.x, F.z);   // the glade where they fight
-  const path = (x, z) => !(Math.abs(z - .25 * Math.sin(x * .08)) < 1.6 && x > -60 && x < 40) && Math.hypot(x - 8, z - 2) > 5 && Math.hypot(x - F.x, z - F.z) > 6.5;
+  const path = (x, z) => !(Math.abs(z - .25 * Math.sin(x * .08)) < 1.6 && x > -60 && x < 40) && Math.hypot(x - 8, z - 2) > 5 && Math.hypot(x - F.x, z - F.z) > 11;
   const forest = bambooForest(scene, {hfn, radius: 118, spacing: 2.0, keep: path, uni});
 
   /* the far bamboo sea: a rolling canopy shell that rises out of the ground beyond the instanced forest */
@@ -58,37 +57,38 @@ export default async function act3({scene, hemi, moonL, bloom, renderer, grade})
 
   /* camera: C1 high glide over the sea toward the moon; C2 ground dolly along the path; low look up into the canopy */
   const gy = (x, z, o) => hfn(x, z) + o;
-  /* C2-C5: in the glade, sword against palm, then the lion's roar flattens the bamboo around them */
-  const cast = makeCast(scene, {wind: [-1, 0, .4], people: await loadPeople()});
-  const gf = (x, z) => hfn(x, z), P = (dx) => new THREE.Vector3(F.x + dx, 0, F.z + dx * .02).setY(gf(F.x + dx, F.z));
-  const S0 = P(-1.25), M0 = P(1.25);
-  cast.S.track([{t: 0, pose: 'standoff', at: S0, face: 1, gfn: gf},
-    ...seq(20.2, S0, [['slash1', 1.0], ['slash2', 1.05, {to: P(-.9)}], ['thrust', 1.1], ['slash3', 1.15], ['block', 1.3], ['slash1', 1.0], ['standoff', 2.2]], {face: 1, gfn: gf}),
-    {t: 28.0, pose: 'block', face: 1, gfn: gf}, {t: 28.55, pose: 'hit', to: P(-3.4), move: .7, face: 1, gfn: gf, ease: 'out'}, {t: 29.6, pose: 'standoff', face: 1, gfn: gf}]);
-  cast.M.track([{t: 0, pose: 'standoff', at: M0, face: 1, gfn: gf},
-    ...seq(20.15, M0, [['block', 1.05], ['block', 1.05], ['punch', 1.0, {to: P(.9)}], ['block', 1.15], ['palm', 1.4], ['block', 1.0], ['horse', 2.2]], {face: 1, gfn: gf}),
-    {t: 28.0, pose: 'horse', face: 1, gfn: gf, fx: [{t: .45, type: 'bell'}, {t: .45, type: 'land', big: true}]}]);
-  const events = cast.bake();
-
-  const shots = [
-    pathShot('aerial', 11, [[-96, gy(-96, 44, 40), 44], [-70, gy(-70, 30, 34), 30], [-44, gy(-44, 16, 29), 16]], [[-96 + 620, 88, 44 - 700], [-70 + 620, 84, 30 - 700], [-44 + 620, 80, 16 - 700]], {fov: [40, 37]}),
-    pathShot('grove', 9, [[-46, gy(-46, 0, 1.7), .3], [-32, gy(-32, 0, 1.9), -.2], [-18, gy(-18, 0, 2.2), .1]], [[0, gy(0, 0, 6), -2], [14, gy(14, 0, 7), -1], [28, gy(28, 0, 8), 0]], {fov: [36, 33], shake: .02}),
-    /* C2-C4 a slow arc round the glade at chest height */
-    orbitShot('duel', 8, [F.x, 0, F.z], {a: [-.55, .75], r: [4.4, 3.6], y: [F.y + 1.25, F.y + 1.45], look: [F.y + 1.05, F.y + 1.15], fov: [34, 30]}),
-    /* C5 low on the monk as he roars */
-    pathShot('roar', 4, [M0.clone().add(new THREE.Vector3(-2.4, .35, 1.4)).toArray(), M0.clone().add(new THREE.Vector3(-2.0, .3, 1.15)).toArray()], [M0.clone().add(new THREE.Vector3(0, 1.55, 0)).toArray(), M0.clone().add(new THREE.Vector3(0, 1.65, 0)).toArray()], {fov: [36, 40], shake: .02}),
-    pathShot('canopy', 7, [[6, gy(6, 2, 1.4), 1.5], [9, gy(9, 2, 1.4), 2.8]], [[6 + 14, gy(6, 2, 1.4) + 17, 1.5 - 16], [9 + 15, gy(9, 2, 1.4) + 17, 2.8 - 15]], {fov: [58, 54], curve: (u) => u}),
+  /* 第三幕：竹海。和尚勝 — 迴風三疊對旋風腿，萬葉化刃被一指禪逐一點碎，獅子吼把劍客震落 */
+  const gf = (x, z) => hfn(x, z);
+  const beats = [
+    {d: 2.0, S: {clip: 'S_swordplay_idle', off: 2}, M: 'M_fight_idle', shot: 'wide', gap: 4},
+    {d: 2.6, S: 'S_two_hand_sword_combo', M: 'M_inward_block', shot: 'track', gap: 1.4, move: 1.2, sk: [{kind: 'crescent', at: .72}, {kind: 'crescent', at: 1.33, up: [0, 1, 0]}, {kind: 'crescent', at: 1.63, size: 3.4}]},
+    {d: 1.9, S: {clip: 'X_jump_back_dodge', off: .3}, M: {clip: 'M_hurricane_kick', off: .1}, shot: 'low', gap: 2.6, move: -1.6},
+    {d: 2.0, S: 'S_gs_spin_kick', M: {clip: 'M_spinning_back_kick'}, shot: 'orbit', slow: .35, gap: 1.6, a0: .4},
+    {d: 2.4, S: {clip: 'S_spell_two_hand_sword'}, M: {clip: 'M_fight_idle'}, shot: 'closeS', gap: 3.2, vo: [['c1', .1]], sk: [{kind: 'fan', at: .3, n: 48, fire: 1.2, span: 1.4}]},
+    {d: 2.4, S: {clip: 'S_gs_pose_idle'}, M: {clip: 'M_cast_two_hands', off: .3}, shot: 'overM', vo: [['c2', .05]], sk: [.35, .6, .85, 1.1, 1.35, 1.6, 1.85].map((at) => ({kind: 'beam', at}))},
+    {d: 2.2, S: 'S_gs_power_slash', M: {clip: 'M_high_block'}, shot: 'medium', gap: 1.5, move: .6, sk: [{kind: 'crescent', at: .8, size: 3}]},
+    {d: 1.8, S: 'X_hit_reaction', M: {clip: 'M_elbow_uppercut', off: .5}, shot: 'dutch', shake: .02},
+    {d: 3.4, S: {clip: 'S_gs_to_block'}, M: {clip: 'M_roar', off: .6}, shot: 'low', gap: 2.4, roar: true, vo: [['c3', .1]], sk: [{kind: 'ring', at: .9, size: 2.5, dur: 1.2, dist: 3}, {kind: 'ring', at: 1.3, size: 3, dur: 1.2, dist: 4}, {kind: 'ring', at: 1.7, size: 3.5, dur: 1.2, dist: 5}]},
+    {d: 2.4, S: {clip: 'X_hit_flip_back', off: .1}, M: {clip: 'M_roar', off: 3.4}, shot: 'wide', gap: 5.5, move: -1, vo: [['c4', 1.6]]},
+    {d: 2.0, S: {clip: 'X_kip_up', off: .3}, M: 'M_fight_idle', shot: 'closeS', gap: 5},
   ];
+  const Fx = await stageFight(ctx, {beats, center: new THREE.Vector3(F.x, gf(F.x, F.z), F.z), yaw: Math.PI / 2, gfn: gf, t0: 13, film0: 13, wind: [-1, 0, .4]});
+  const roarAt = Fx.D.beats.find((B) => B.b.roar).t + 1.0;
+  const shots = [
+    pathShot('aerial', 7, [[-96, gy(-96, 44, 40), 44], [-75, gy(-75, 33, 35), 33]], [[-96 + 620, 88, 44 - 700], [-75 + 620, 85, 33 - 700]], {fov: [40, 38]}),
+    pathShot('grove', 6, [[-36, gy(-36, 0, 1.7), .3], [-24, gy(-24, 0, 1.9), -.2]], [[F.x, gy(F.x, 0, 1.2), F.z], [F.x, gy(F.x, 0, 1.3), F.z]], {fov: [32, 28], shake: .02}),
+    ...Fx.shots,
+    Object.assign(pathShot('canopy', 5, [[6, gy(6, 2, 1.4), 1.5], [9, gy(9, 2, 1.4), 2.8]], [[6 + 14, gy(6, 2, 1.4) + 17, 1.5 - 16], [9 + 15, gy(9, 2, 1.4) + 17, 2.8 - 15]], {fov: [58, 54], curve: (u) => u}), {t0: Fx.D.end}),
+  ];
+  const events = Fx.events;
   return {
     moonDir, sky, shots, shadowAhead: 30, events,
     update(t, lt, sh, cam) {
       uni.uT.value = t; uni.uWind.value = 1 + .35 * Math.sin(t * .3);
       leaves.update(t, cam); leaves.mesh.visible = sh.name !== 'aerial'; mist.update(t);
-      for (const A of cast.all) if (A.shown !== (sh.name !== 'aerial' && sh.name !== 'canopy')) A.show(sh.name !== 'aerial' && sh.name !== 'canopy');
-      cast.update(t, cam);
-      const kk = cast.kick(t); cam.position.x += Math.sin(t * 91) * kk.shake; cam.position.y += Math.sin(t * 73) * kk.shake; grade.uniforms.uFlash.value = kk.flash * .3;
+      Fx.update(t, cam);
       /* the roar: wind slams outward, the bamboo bows away from the monk */
-      const roar = t > 28.45 ? Math.exp(-(t - 28.45) * 1.2) : 0; uni.uWind.value = 1 + .35 * Math.sin(t * .3) + roar * 6;
+      const roar = t > roarAt ? Math.exp(-(t - roarAt) * 1.2) : 0; uni.uWind.value = 1 + .35 * Math.sin(t * .3) + roar * 6;
     },
   };
 }
