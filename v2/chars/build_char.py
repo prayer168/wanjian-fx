@@ -3,7 +3,7 @@
 # MPFB makes the body, skin, eyes, brows, lashes, teeth and hair on the game-engine skeleton; the costume
 # (robe top, wide sleeves, skirt, trousers, boots, belt, beads) is generated here from the body's own shape and
 # bone weights, so it bends with the same skeleton. Body skin under the costume is removed to stop poke-through.
-import bpy, bmesh, sys, os, json, math
+import bpy, bmesh, sys, os, json, math, mathutils, mathutils.kdtree
 from mathutils import Vector
 
 argv = sys.argv[sys.argv.index('--') + 1:]
@@ -119,7 +119,11 @@ def shell_obj(name, mat, keep, off, smooth_it=4, extra=None):
     bm = shell(name, mat, keep, off, smooth_it, extra)
     cyl_uv(bm, 0, 0)
     ob = new_obj(name, bm, mat)
-    bind(ob, [BW[i] for i in idx[:len(ob.data.vertices)]])
+    # weights by nearest source vertex (robust to the smoothing, the plane cut and any vertex reordering)
+    kd = mathutils.kdtree.KDTree(len(idx))
+    for k, i in enumerate(idx): kd.insert(body.data.vertices[i].co, k)
+    kd.balance()
+    bind(ob, [BW[idx[kd.find(v.co)[1]]] for v in ob.data.vertices])
     return ob
 
 pel = bone_head('pelvis'); waistZ = bone_head('spine_01').z + .02
@@ -142,15 +146,14 @@ if top:
         if bare_r:
             # kasaya: bare right shoulder; the cloth runs from the left shoulder down across to the right ribs
             if wsum(w, ('upperarm_r', 'lowerarm_r', 'clavicle_r')) > .3: return False
-            if co.x < .03 and co.z > cut(co.x) - margin: return False
+            if co.x < .03 and co.z > cut(co.x) + .06 - margin: return False
         return t > .55
     def straighten(bm):
-        # pull the stair-stepped kasaya edge onto the diagonal so the hem reads as one clean fold
+        # cut the kasaya along one clean plane (shoulder to ribs) instead of along vertex steps
         if not bare_r: return
-        for v in bm.verts:
-            if v.is_boundary and v.co.x < .06 and v.co.z > cut(v.co.x) - .07 and v.co.z > waistZ + .1: v.co.z = cut(v.co.x) + .012
+        r = bmesh.ops.bisect_plane(bm, geom=bm.verts[:] + bm.edges[:] + bm.faces[:], plane_co=Vector((.03, 0, nz - .06 + .012)), plane_no=Vector((-1.05, 0, 1)), clear_outer=True)
     shell_obj(SPEC['name'] + '_top', top['mat'], in_top, top.get('off', .012), 4, straighten)
-    covered.append(lambda i, co: in_top(i, co, .05) and not (BW[i].get('neck_01', 0) > .1) and co.z < waistZ + .55 or (in_top(i, co) and wsum(BW[i], ('upperarm_',)) > .5))
+    covered.append(lambda i, co: in_top(i, co, .11) and not (BW[i].get('neck_01', 0) > .1) and co.z < waistZ + .55 or (in_top(i, co) and wsum(BW[i], ('upperarm_',)) > .5))
 
 pants = C.get('pants')
 if pants:

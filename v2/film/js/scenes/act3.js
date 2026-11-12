@@ -2,11 +2,14 @@ import * as THREE from 'three';
 import {buildSky, buildMountains} from '../sky.js';
 import {terrain, bambooForest, addSway} from '../nature.js';
 import {makeFlutter, makeMist} from '../fx.js';
-import {pathShot} from '../cam.js';
+import {pathShot, orbitShot} from '../cam.js';
 import {canvasTex, grain, rng, fbm} from '../util.js';
+import {makeCast} from '../cast.js';
+import {loadPeople} from '../people.js';
+import {seq} from '../fight.js';
 
 /* Act III — moonlit bamboo sea on rolling hills */
-export default function act3({scene, hemi, moonL, bloom, renderer}) {
+export default async function act3({scene, hemi, moonL, bloom, renderer, grade}) {
   const HOR = [.030, .042, .060];
   const moonDir = new THREE.Vector3(.62, .27, -.70).normalize();
   scene.fog = new THREE.FogExp2(0, .0040); scene.fog.color.setRGB(...HOR);
@@ -33,7 +36,8 @@ export default function act3({scene, hemi, moonL, bloom, renderer}) {
   scene.add(ground);
 
   const uni = {uT: {value: 0}, uWind: {value: 1}};
-  const path = (x, z) => !(Math.abs(z - .25 * Math.sin(x * .08)) < 1.6 && x > -60 && x < 40) && Math.hypot(x - 8, z - 2) > 5;
+  const F = new THREE.Vector3(-4, 0, .25 * Math.sin(-4 * .08)); F.y = hfn(F.x, F.z);   // the glade where they fight
+  const path = (x, z) => !(Math.abs(z - .25 * Math.sin(x * .08)) < 1.6 && x > -60 && x < 40) && Math.hypot(x - 8, z - 2) > 5 && Math.hypot(x - F.x, z - F.z) > 6.5;
   const forest = bambooForest(scene, {hfn, radius: 118, spacing: 2.0, keep: path, uni});
 
   /* the far bamboo sea: a rolling canopy shell that rises out of the ground beyond the instanced forest */
@@ -54,16 +58,37 @@ export default function act3({scene, hemi, moonL, bloom, renderer}) {
 
   /* camera: C1 high glide over the sea toward the moon; C2 ground dolly along the path; low look up into the canopy */
   const gy = (x, z, o) => hfn(x, z) + o;
+  /* C2-C5: in the glade, sword against palm, then the lion's roar flattens the bamboo around them */
+  const cast = makeCast(scene, {wind: [-1, 0, .4], people: await loadPeople()});
+  const gf = (x, z) => hfn(x, z), P = (dx) => new THREE.Vector3(F.x + dx, 0, F.z + dx * .02).setY(gf(F.x + dx, F.z));
+  const S0 = P(-1.25), M0 = P(1.25);
+  cast.S.track([{t: 0, pose: 'standoff', at: S0, face: 1, gfn: gf},
+    ...seq(20.2, S0, [['slash1', 1.0], ['slash2', 1.05, {to: P(-.9)}], ['thrust', 1.1], ['slash3', 1.15], ['block', 1.3], ['slash1', 1.0], ['standoff', 2.2]], {face: 1, gfn: gf}),
+    {t: 28.0, pose: 'block', face: 1, gfn: gf}, {t: 28.55, pose: 'hit', to: P(-3.4), move: .7, face: 1, gfn: gf, ease: 'out'}, {t: 29.6, pose: 'standoff', face: 1, gfn: gf}]);
+  cast.M.track([{t: 0, pose: 'standoff', at: M0, face: 1, gfn: gf},
+    ...seq(20.15, M0, [['block', 1.05], ['block', 1.05], ['punch', 1.0, {to: P(.9)}], ['block', 1.15], ['palm', 1.4], ['block', 1.0], ['horse', 2.2]], {face: 1, gfn: gf}),
+    {t: 28.0, pose: 'horse', face: 1, gfn: gf, fx: [{t: .45, type: 'bell'}, {t: .45, type: 'land', big: true}]}]);
+  const events = cast.bake();
+
   const shots = [
     pathShot('aerial', 11, [[-96, gy(-96, 44, 40), 44], [-70, gy(-70, 30, 34), 30], [-44, gy(-44, 16, 29), 16]], [[-96 + 620, 88, 44 - 700], [-70 + 620, 84, 30 - 700], [-44 + 620, 80, 16 - 700]], {fov: [40, 37]}),
     pathShot('grove', 9, [[-46, gy(-46, 0, 1.7), .3], [-32, gy(-32, 0, 1.9), -.2], [-18, gy(-18, 0, 2.2), .1]], [[0, gy(0, 0, 6), -2], [14, gy(14, 0, 7), -1], [28, gy(28, 0, 8), 0]], {fov: [36, 33], shake: .02}),
+    /* C2-C4 a slow arc round the glade at chest height */
+    orbitShot('duel', 8, [F.x, 0, F.z], {a: [-.55, .75], r: [4.4, 3.6], y: [F.y + 1.25, F.y + 1.45], look: [F.y + 1.05, F.y + 1.15], fov: [34, 30]}),
+    /* C5 low on the monk as he roars */
+    pathShot('roar', 4, [M0.clone().add(new THREE.Vector3(-2.4, .35, 1.4)).toArray(), M0.clone().add(new THREE.Vector3(-2.0, .3, 1.15)).toArray()], [M0.clone().add(new THREE.Vector3(0, 1.55, 0)).toArray(), M0.clone().add(new THREE.Vector3(0, 1.65, 0)).toArray()], {fov: [36, 40], shake: .02}),
     pathShot('canopy', 7, [[6, gy(6, 2, 1.4), 1.5], [9, gy(9, 2, 1.4), 2.8]], [[6 + 14, gy(6, 2, 1.4) + 17, 1.5 - 16], [9 + 15, gy(9, 2, 1.4) + 17, 2.8 - 15]], {fov: [58, 54], curve: (u) => u}),
   ];
   return {
-    moonDir, sky, shots, shadowAhead: 30,
+    moonDir, sky, shots, shadowAhead: 30, events,
     update(t, lt, sh, cam) {
       uni.uT.value = t; uni.uWind.value = 1 + .35 * Math.sin(t * .3);
       leaves.update(t, cam); leaves.mesh.visible = sh.name !== 'aerial'; mist.update(t);
+      for (const A of cast.all) if (A.shown !== (sh.name !== 'aerial' && sh.name !== 'canopy')) A.show(sh.name !== 'aerial' && sh.name !== 'canopy');
+      cast.update(t, cam);
+      const kk = cast.kick(t); cam.position.x += Math.sin(t * 91) * kk.shake; cam.position.y += Math.sin(t * 73) * kk.shake; grade.uniforms.uFlash.value = kk.flash * .3;
+      /* the roar: wind slams outward, the bamboo bows away from the monk */
+      const roar = t > 28.45 ? Math.exp(-(t - 28.45) * 1.2) : 0; uni.uWind.value = 1 + .35 * Math.sin(t * .3) + roar * 6;
     },
   };
 }

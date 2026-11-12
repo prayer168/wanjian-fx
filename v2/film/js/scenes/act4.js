@@ -4,8 +4,11 @@ import {buildSky, buildMountains} from '../sky.js';
 import {Kit, building, archBridge, boat, willow, lanternString, lantern} from '../arch.js';
 import {addSway} from '../nature.js';
 import {makeRain, makeSplashes, makeMist} from '../fx.js';
-import {pathShot} from '../cam.js';
+import {pathShot, orbitShot} from '../cam.js';
 import {canvasTex, rng, fbm, M} from '../util.js';
+import {makeCast} from '../cast.js';
+import {loadPeople} from '../people.js';
+import {seq} from '../fight.js';
 
 /* rain-ruffled canal: planar reflection distorted by swell + expanding raindrop rings, fresnel mix with deep water */
 const WaterShader = {
@@ -35,7 +38,7 @@ const WaterShader = {
 };
 
 /* Act IV — rain at night on the canal, arch bridge, moored boats, willows, lit tea-houses on both banks */
-export default function act4({scene, hemi, moonL, bloom, renderer, mats, grade}) {
+export default async function act4({scene, hemi, moonL, bloom, renderer, mats, grade}) {
   const HOR = [.020, .022, .034];
   const moonDir = new THREE.Vector3(.5, .6, -.62).normalize();
   scene.fog = new THREE.FogExp2(0, .011); scene.fog.color.setRGB(...HOR);
@@ -89,7 +92,7 @@ export default function act4({scene, hemi, moonL, bloom, renderer, mats, grade})
     for (let x = -110; x < 110; x += 13 + R() * 6) if (Math.abs(x) > 14) willow(kit, x, side * (BANK + 1.4), 7 + R() * 3, R);
     for (let x = -100; x < 100; x += 8 + R() * 3) if (Math.abs(x) > 12) lanternString(kit, new THREE.Vector3(x, 3.4, side * (BANK + .3)), new THREE.Vector3(x + 7, 3.4, side * (BANK + .3)), 4, .35, R() < .4, lamps);
   }
-  archBridge(kit, 0, {wy: WY, bank: BANK}, lamps);
+  const bridge = archBridge(kit, 0, {wy: WY, bank: BANK}, lamps);
   boat(kit, -22, WY + .05, -5, .08, lamps); boat(kit, 27, WY + .05, 5.2, Math.PI - .05, lamps); boat(kit, 46, WY + .05, -4.8, -.04, lamps);
   const built = kit.build(scene);
   if (built.willow) { built.willow.customDepthMaterial = willowDepth; built.willow.castShadow = false; }
@@ -107,22 +110,40 @@ export default function act4({scene, hemi, moonL, bloom, renderer, mats, grade})
   const mist = makeMist(scene, Array.from({length: 18}, (_, i) => ({p: new THREE.Vector3((i < 9 ? -95 : 18) + (i % 9) * 9, WY + .9, (R() - .5) * 8), s: 22, flat: .16})), {color: [.4, .42, .5], opacity: .07});
 
   /* flashes of lightning: a double flicker */
-  const flash = (t) => { let f = 0; for (const t0 of [3.2, 15.6, 22.4]) { const d = t - t0; if (d > 0 && d < .5) f = Math.max(f, Math.exp(-d * 18) + .6 * Math.exp(-Math.max(0, d - .14) * 14) * (d > .14 ? 1 : 0)); } return f; };
+  const flash = (t) => { let f = 0; for (const t0 of [3.2, 15.6, 21.9]) { const d = t - t0; if (d > 0 && d < .5) f = Math.max(f, Math.exp(-d * 18) + .6 * Math.exp(-Math.max(0, d - .14) * 14) * (d > .14 ? 1 : 0)); } return f; };
+
+  /* D3-D5 on the crown of the bridge: a fast exchange in the downpour, then both spring up out of the rain */
+  const cast = makeCast(scene, {wind: [1.2, 0, -.6], people: await loadPeople()});
+  const gd = (x, z) => bridge.yd(z) + .1, P = (z) => new THREE.Vector3(0, gd(0, z), z);
+  const fast = {face: 1, gfn: gd, speed: 1.35, blend: .12};
+  cast.S.track([{t: 0, pose: 'standoff', at: P(-1.15), face: 1, gfn: gd},
+    ...seq(17.3, P(-1.15), [['slash1', .75], ['slash2', .78], ['punch', .7], ['thrust', .82, {to: P(-.8)}], ['slash3', .85], ['block', .95], ['slash1', .75], ['palm', .95], ['hit', .8, {to: P(-2.2)}], ['standoff', 2.2]], fast),
+    {t: 29.4, pose: 'jump', at: P(-2.2), face: 1, gfn: gd}, {t: 29.95, pose: 'tuck', at: P(-2.2), to: [0, 34, 6], arc: 6, move: 2.4, blend: .1}]);
+  cast.M.track([{t: 0, pose: 'horse', at: P(1.15), face: 1, gfn: gd},
+    ...seq(17.25, P(1.15), [['block', .9], ['block', .8], ['punch', .72], ['block', .85], ['block', .85], ['punch', .8, {to: P(.85)}], ['block', .8], ['palm', 1.0], ['slash3', .9], ['horse', 2.0]], {...fast, speed: 1.3}),
+    {t: 29.55, pose: 'jump', face: 1, gfn: gd}, {t: 30.1, pose: 'tuck', at: P(1.15), to: [0, 34, 9], arc: 6, move: 2.4, blend: .1}]);
+  const events = cast.bake();
 
   const shots = [
     Object.assign(pathShot('wide', 9, [[-46, 3.2, 3.5], [-38, 3.0, 2.2]], [[0, 2.5, 0], [0, 2.2, 0]], {fov: [34, 31]}), {focus: new THREE.Vector3(-8, 2, 0)}),
     Object.assign(pathShot('water', 8, [[-30, WY + .55, .8], [-12, WY + .5, .3], [6, WY + .6, -.2]], [[0, WY + 1.2, 0], [20, WY + 1.4, 0], [40, WY + 1.6, 0]], {fov: [38, 40]}), {focus: new THREE.Vector3(-4, 0, 0)}),
+    Object.assign(pathShot('clash', 8, [[1.85, gd(0, -2.8) + 1.5, -2.8], [1.9, gd(0, -.6) + 1.35, -.6], [1.7, gd(0, 1.4) + 1.45, 1.4]], [[-.6, 6.1, .2], [-.5, 6.0, 0], [-.6, 6.1, -.3]], {fov: [36, 32], shake: .015}), {focus: new THREE.Vector3(0, 5, 0)}),
     Object.assign(pathShot('deck', 7, [[-1.2, 4.6, -9], [-.6, 6.1, -4.5]], [[.4, 5.6, 6], [.8, 5.2, 12]], {fov: [36, 34], shake: .02}), {focus: new THREE.Vector3(0, 4, 0)}),
   ];
   let cur = null;
   return {
-    moonDir, sky, shots,
+    moonDir, sky, shots, events,
     update(t, lt, sh, cam) {
       if (cur !== sh) { cur = sh; seat(sh.focus); }
       uni.uT.value = t; water.material.uniforms.uT.value = t;
       for (const L of pl) L.intensity = 18 * (1 + .1 * Math.sin(t * 8 + L.position.x * 3));
       const f = flash(t); sky.uni.uFlash.value = f; hemi.intensity = .35 + f * 2.5;
       rain.update(t, cam); splash.update(t, cam); mist.update(t);
+      for (const A of cast.all) if (A.shown !== (sh.name === 'clash' || sh.name === 'deck')) A.show(sh.name === 'clash' || sh.name === 'deck');
+      cast.update(t, cam);
+      const kk = cast.kick(t); cam.position.x += Math.sin(t * 91) * kk.shake; cam.position.y += Math.sin(t * 73) * kk.shake;
+      grade.uniforms.uFlash.value = kk.flash * .35;
+      if (HIDE.includes('fx')) scene.traverse((o) => { if (o.isPoints) o.visible = false; });
     },
   };
 }

@@ -3,16 +3,23 @@ import {buildSky, buildMountains, HOR} from '../sky.js';
 import {buildAct2} from '../act2.js';
 import {pathShot} from '../cam.js';
 import {makeFlutter} from '../fx.js';
+import {makeCast} from '../cast.js';
+import {loadPeople} from '../people.js';
 
 /* Epilogue — 明日再戰. G1 long-lens silhouette of the tower top against a giant moon (the two figures will stand there),
    G2 the camera climbs out of the city until the tower is a speck under the moon and the stars. */
-export default function epilogue({scene, mats, moonL, bloom, grade}) {
+export default async function epilogue({scene, mats, moonL, bloom, grade}) {
   const moonDir = new THREE.Vector3(.62, .12, -.78).normalize();
   scene.fog = new THREE.FogExp2(0, .0028); scene.fog.color.setRGB(...HOR);
   const sky = buildSky(scene, moonDir);
   buildMountains(scene);
   const set = buildAct2(scene, mats);
   const T = set.tower, top = T.tiers[6], P = new THREE.Vector3(T.base.x, top.y + 2.2, T.base.z);
+  /* both on the top floor, backs to the camera, facing the moon: sword lowered, palms folded */
+  const F6 = top.y + .3, cast = makeCast(scene, {wind: [-1.2, 0, .3], people: await loadPeople()});
+  cast.S.track([{t: 0, pose: 'idle', at: [T.base.x + .8, F6, T.base.z + 1.6], yaw: Math.PI}]);
+  cast.M.track([{t: 0, pose: 'standoff', at: [T.base.x - .8, F6, T.base.z + 1.6], yaw: Math.PI}]);
+  cast.bake();
   const flakes = makeFlutter(scene, {count: 400, box: [60, 30, 60], color: [.3, .24, .14], size: [.12, .08], fall: .3, drift: [1.6, .4]});
 
   /* camera on the line from the moon through the tower top, far back, long lens: the moon fills the frame behind the pavilion */
@@ -31,6 +38,7 @@ export default function epilogue({scene, mats, moonL, bloom, grade}) {
       for (const L of set.lights) L.intensity = 22 * (1 + .08 * Math.sin(t * 9 + L.position.x));
       set.bells.update(t, .8, .2 * Math.exp(-t * .2));
       flakes.update(t, cam);
+      cast.update(t, cam);
       grade.uniforms.uFade.value = 1 - THREE.MathUtils.smoothstep(t, 13.8, 15.9);  // slow fade to black
     },
   };

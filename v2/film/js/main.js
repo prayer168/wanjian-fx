@@ -31,6 +31,9 @@ scene.add(hemi, moonL, moonL.target);
 const rt = new THREE.WebGLRenderTarget(W, H, {type: THREE.HalfFloatType, samples: 4});
 const composer = new EffectComposer(renderer, rt);
 composer.addPass(new RenderPass(scene, camera));
+/* a single bad pixel (NaN/Inf from a degenerate normal) would be smeared into black blocks by the bloom mips: zero it first */
+composer.addPass(new ShaderPass({uniforms: {tDiffuse: {value: null}}, vertexShader: `varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+  fragmentShader: `uniform sampler2D tDiffuse;varying vec2 vUv;void main(){vec4 c=texture2D(tDiffuse,vUv);if(any(isnan(c))||any(isinf(c)))c=vec4(0.,0.,0.,1.);gl_FragColor=vec4(min(c.rgb,vec3(6e4)),c.a);}`}));
 const bloom = new UnrealBloomPass(new THREE.Vector2(W, H), .75, .55, .82);
 composer.addPass(bloom);
 composer.addPass(new OutputPass());
@@ -87,5 +90,7 @@ function draw(t) {
 }
 
 window.__reelFrames = Math.round(total * 60);
+/* the fight's sound cues for the audio score: every hit, block, landing and bell, in section time */
+window.__events = (S.events || []).map((e) => ({t: +e.t.toFixed(3), type: e.type, who: e.who, heavy: !!e.heavy, big: !!e.big}));
 window.__renderFrame = (i) => { draw(i / 60); return i; };
 if (!RENDER) { const t0 = performance.now(); const loop = () => { draw(((performance.now() - t0) / 1000) % total); requestAnimationFrame(loop); }; loop(); }

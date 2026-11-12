@@ -247,7 +247,7 @@ class Trail{
     const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(this.pos,3));g.setAttribute('al',new THREE.BufferAttribute(this.al,1));g.setAttribute('sd',new THREE.BufferAttribute(side,1));g.setIndex(idx);this.geo=g;
     this.mesh=new THREE.Mesh(g,new THREE.ShaderMaterial({transparent:true,depthWrite:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,uniforms:{c1:{value:c1},c2:{value:c2}},
       vertexShader:`attribute float al,sd;varying float va,vs;void main(){va=al;vs=sd;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
-      fragmentShader:`uniform vec3 c1,c2;varying float va,vs;void main(){vec3 c=mix(c1,c2,vs)+vec3(1.)*pow(vs,8.)*va;float a=va*(.12+.88*pow(vs,1.4));gl_FragColor=vec4(c,a);}`}));
+      fragmentShader:`uniform vec3 c1,c2;varying float va,vs;void main(){vec3 c=mix(c1,c2,vs)+vec3(1.)*pow(vs,8.)*va;float a=clamp(va*(.12+.88*pow(vs,1.4)),0.,1.);gl_FragColor=vec4(clamp(c,0.,2.),a);}`}));
     this.mesh.frustumCulled=false;scene.add(this.mesh);
   }
   add(b,t){this.s.push({b:b.clone(),t:t.clone(),life:1});if(this.s.length>this.max)this.s.shift();}
@@ -470,7 +470,7 @@ function makeBursts(list,add=true){
     vertexShader:`uniform float uT;attribute vec3 aV,aC;attribute vec4 aT;varying vec3 vC;varying float vA;
       void main(){float a=uT-aT.x;if(a<0.||a>aT.y){gl_Position=vec4(2.,2.,2.,1.);return;}float l=a/aT.y;
         vec3 w=position+aV*(1.-exp(-3.*a))/3.-vec3(0.,aT.w*a*a*.5,0.);vC=aC;vA=(1.-l)*(1.-l);
-        vec4 mv=viewMatrix*vec4(w,1.);gl_Position=projectionMatrix*mv;gl_PointSize=aT.z*(1.-l*.5)*projectionMatrix[1][1]*540./max(-mv.z,.3);}`,
+        vec4 mv=viewMatrix*vec4(w,1.);if(-mv.z<.8){gl_Position=vec4(2.,2.,2.,1.);return;}gl_Position=projectionMatrix*mv;gl_PointSize=min(aT.z*(1.-l*.5)*projectionMatrix[1][1]*540./-mv.z,160.);}`,
     fragmentShader:`uniform sampler2D uMap;varying vec3 vC;varying float vA;void main(){float a=texture2D(uMap,gl_PointCoord).a;gl_FragColor=${add?'vec4(vC*vA*a*2.,1.)':'vec4(vC,vA*a*.55)'};}`}));
   pts.frustumCulled=false;scene.add(pts);return uni;
 }
@@ -486,20 +486,20 @@ export function makeCast(sc,{wind=[-1.6,0,.35],people=null}={}){
   const W=new THREE.Vector3(...wind),air=new THREE.Vector3(),rel=new THREE.Vector3();
   const ringGeo=new THREE.RingGeometry(.88,1,64),rings=[];let bursts=null;
   /* a soft fill that rides with the camera, as a film crew would light faces: constant illuminance on the nearest lead */
-  const fill=new THREE.SpotLight(0xdfe6ff,0,0,.3,.6,2);scene.add(fill,fill.target);
-  const cast={S,M,all:[S,M],events:[],simT:-1e9,wind:W,fillK:.9,fill,bellK:.45,
+  const fill=new THREE.SpotLight(0xdfe6ff,0,4,.75,.8,2);scene.add(fill,fill.target);
+  const cast={S,M,all:[S,M],events:[],simT:-1e9,wind:W,fillK:.9,fill,bellK:1,
     /* call once after the tracks are set: collects every hit/land/step/bell event with its world position */
     bake(){
       const ev=[];
-      for(const A of cast.all)A.segs.forEach((s)=>{const p=A.lib[s.pose],rep=p.loop?p.dur/s.speed:0;
-        const fx=(p.fx||[]).map(e=>({...e,t:(e.t-s.off)/s.speed,rep})).concat((s.fx||[]).map(e=>({...e,rep:0})));
+      for(const A of cast.all)A.segs.forEach((s)=>{const p=A.lib[s.pose],rep=p.loop&&s.speed>0?p.dur/s.speed:0;
+        const fx=(s.speed>0?(p.fx||[]).map(e=>({...e,t:(e.t-s.off)/s.speed,rep})):[]).concat((s.fx||[]).map(e=>({...e,rep:0})));   /* a frozen (speed 0) segment fires nothing */
         for(const e of fx)for(let te=s.t+e.t;te<s.end;te+=e.rep||1e9){if(te<s.t)continue;A.eval(te);
           ev.push({t:te,type:e.type,who:A===S?'S':'M',heavy:e.heavy??A===M,big:e.big??s.big,p:pointOf(A.ch,e.at||'wrR',new THREE.Vector3()).clone(),
             foot:[A.ch.J.anL.getWorldPosition(new THREE.Vector3()),A.ch.J.anR.getWorldPosition(new THREE.Vector3())],ground:A.root.y,root:A.root.clone()});if(!e.rep)break;}});
       ev.sort((a,b)=>a.t-b.t);cast.events=ev;
       const L=[],Ld=[],gold=new THREE.Color('#ffcc44');
       for(const e of ev){const C=e.who==='S'?S.ch:M.ch;
-        if(e.type==='hit'){L.push({t:e.t,p:e.p,c:C.fxColor2,n:e.heavy?40:30,sp:e.heavy?5:6,life:.5,size:.05});rings.push({t:e.t,p:e.p,c:C.fxColor,s:e.heavy?1.1:.8,d:.35,bill:1},{t:e.t,p:e.p,c:new THREE.Color(1,1,1),s:e.heavy?.6:.45,d:.22,bill:1});}
+        if(e.type==='hit'){L.push({t:e.t,p:e.p,c:C.fxColor2,n:e.heavy?40:30,sp:e.heavy?5:6,life:.5,size:.05});rings.push({t:e.t,p:e.p,c:C.fxColor,s:e.heavy?.6:.45,d:.3,bill:1,o:.45},{t:e.t,p:e.p,c:new THREE.Color(1,1,1),s:e.heavy?.32:.25,d:.18,bill:1,o:.6});}
         else if(e.type==='land'||e.type==='step'){const big=e.type==='land'&&(e.who==='M'||e.big);
           for(const f of e.foot){if(f.y-e.ground>.3)continue;Ld.push({t:e.t,p:new THREE.Vector3(f.x,e.ground+.05,f.z),c:new THREE.Color(.2,.18,.19),n:big?16:6,sp:big?2.2:1,life:big?1.1:.7,size:big?.5:.25,flat:1,grav:-.4});}
           if(big)rings.push({t:e.t,p:new THREE.Vector3(e.root.x,e.ground+.04,e.root.z),c:gold,s:e.big?4:1.6,d:.5,bill:0});}
@@ -531,13 +531,13 @@ export function makeCast(sc,{wind=[-1.6,0,.35],people=null}={}){
       for(const A of cast.all){A.eval(t);const C=A.ch;if(!A.shown)continue;
         if(A.P)retarget(A.P,C,A===S?[A.cur.f[0],1]:A.cur.f);
         else{rel.copy(W).multiplyScalar(A.cur.W[0]).sub(A.hipVel);C.skirt.update(Math.min(fdt,.25),rel);for(const r of C.ropes)r.build();}A.trails.R.build();A.trails.L.build();
-        if(C.bell){let pulse=0;for(const e of cast.events)if(e.type==='bell'&&e.who==='M'&&t>=e.t)pulse=Math.max(pulse,1-(t-e.t)*2.2);
-          const a=Math.min(1.4,A.cur.A[0]+pulse*.9);C.bell.visible=a>.01;C.bellMat.uniforms.uI.value=a*cast.bellK;C.bellMat.uniforms.uT.value=t;}
+        if(C.bell){let pulse=0;for(const e of cast.events)if(e.type==='bell'&&e.who==='M'&&t>=e.t)pulse=Math.max(pulse,(1-(t-e.t)*2.2)*(e.big||!A.P?1:.25));
+          const a=A.P?A.cur.A[0]*.12+pulse*.55:Math.min(1.4,A.cur.A[0]+pulse*.9);C.bell.visible=a>.01;C.bellMat.uniforms.uI.value=a*cast.bellK;C.bellMat.uniforms.uT.value=t;}
         if(C.bladeMat)C.bladeMat.emissive.setHex(A.trailOn().length?0x6ab8ff:0x3a5a88);}
       if(people){let best=null,bd=1e9;for(const A of cast.all){if(!A.shown)continue;const d=A.root.distanceTo(cam.position);if(d<bd){bd=d;best=A;}}
-        if(best&&bd<40){fill.position.copy(cam.position).add(v1.set(0,.35,0)).lerp(v2.copy(best.root).setY(best.root.y+1.6),.35);const d=fill.position.distanceTo(v2);fill.target.position.copy(v2).setY(best.root.y+1.1);fill.angle=Math.min(.9,Math.atan(1.3/d));fill.intensity=cast.fillK*d*d;fill.distance=d*3;}else fill.intensity=0;}
+        if(best&&bd<40){v2.copy(best.root).setY(best.root.y+1.45);v1.copy(cam.position).sub(v2).setY(0).normalize();fill.position.copy(v2).addScaledVector(v1,1.5).add(v3.set(0,.5,0));fill.target.position.copy(v2).setY(best.root.y+1.0);fill.angle=.75;fill.intensity=cast.fillK*2.6;fill.distance=4;}else fill.intensity=0;}
       if(bursts)for(const b of bursts)b.uT.value=t;
-      for(const r of rings){const a=t-r.t;r.m.visible=a>=0&&a<r.d;if(!r.m.visible)continue;const u=a/r.d,s=r.s*E.out(u);r.m.scale.set(s,s,s);r.m.material.opacity=(1-u)*.9;if(r.bill)r.m.quaternion.copy(cam.quaternion);}
+      for(const r of rings){const a=t-r.t;r.m.visible=a>=0&&a<r.d;if(!r.m.visible)continue;const u=a/r.d,s=r.s*E.out(u);r.m.scale.set(s,s,s);r.m.material.opacity=(1-u)*(r.o??.9);if(r.bill)r.m.quaternion.copy(cam.quaternion);}
     },
   };
   return cast;

@@ -41,6 +41,13 @@ await page.goto(url);
 await page.waitForFunction(() => typeof window.__renderFrame === 'function', null, {timeout: 120000});
 await page.evaluate(() => document.fonts.ready);
 const total = framesArg ? +framesArg : await page.evaluate(() => window.__reelFrames);
+const evOut = flag('--events');
+if (evOut || !stills.length) {
+  // write the fight's sound cues next to the clip (or where asked) for audio/score.mjs
+  const {writeFileSync} = await import('node:fs');
+  writeFileSync(evOut ? resolve(here, evOut) : out.replace(/\.mp4$/, '.events.json'), JSON.stringify(await page.evaluate(() => window.__events || [])));
+  if (evOut) { await browser.close(); server.close(); process.exit(0); }
+}
 const stage = page.locator('#view');
 const done = async () => { await browser.close(); server.close(); };
 

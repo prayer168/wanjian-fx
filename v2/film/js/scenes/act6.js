@@ -4,6 +4,8 @@ import {buildAct2} from '../act2.js';
 import {pathShot} from '../cam.js';
 import {makeGoldenBell, makeSparks} from '../fx.js';
 import {rng, fbm} from '../util.js';
+import {makeCast} from '../cast.js';
+import {loadPeople} from '../people.js';
 
 /* Act VI — 雙鐘共鳴. F1 the frozen instant on the tower top, F2 impact frame then the golden bell and the bronze bell ring together,
    F3 the shockwave rolls a wave through every roof of the city, lanterns die and relight, F4 the cloud deck is blown open into a ring of stars.
@@ -28,7 +30,7 @@ function patchCity(mat, uni, {lift = false, glow = false}) {
   mat.needsUpdate = true;
 }
 
-export default function act6({scene, mats, moonL, hemi, bloom, grade, renderer}) {
+export default async function act6({scene, mats, moonL, hemi, bloom, grade, renderer}) {
   const moonDir = new THREE.Vector3(.62, .12, -.78).normalize();
   scene.fog = new THREE.FogExp2(0, .0030); scene.fog.color.setRGB(...HOR);
   const sky = buildSky(scene, moonDir);
@@ -84,9 +86,20 @@ export default function act6({scene, mats, moonL, hemi, bloom, grade, renderer})
   }));
   deck.position.y = 300; deck.renderOrder = 5; scene.add(deck);
 
+  /* the two on the top floor, facing across the middle bay, the moon behind: the sword point frozen an inch from the monk's brow,
+     then the monk's double palm and the bell take the blow and the swordsman is thrown back to the rail */
+  const F6 = top.y + .3, at = (x, z = 1.8) => new THREE.Vector3(C.x + x, F6, C.z + z);
+  const cast = makeCast(scene, {wind: [-.5, 0, .2], people: await loadPeople()});
+  cast.S.track([{t: 0, pose: 'thrust', at: at(.75), face: 1, speed: 0, off: .5},
+    {t: T0 + .02, pose: 'hit', to: at(2.3, 2.3), move: .45, face: 1, ease: 'out', blend: .05}, {t: T0 + 1.2, pose: 'standoff', face: 1}]);
+  cast.M.track([{t: 0, pose: 'palm', at: at(-.75), face: 1, speed: 0, off: .3},
+    {t: T0 - .12, pose: 'palm', face: 1, off: .38, blend: .05, fx: [{t: .12, type: 'bell', big: true}]}, {t: T0 + 1.6, pose: 'horse', face: 1}]);
+  const events = cast.bake();
+
   const V = (x, y, z) => [C.x + x, C.y + y, C.z + z];
   const shots = [
-    Object.assign(pathShot('still', 4, [V(-moonDir.x * 26, 2.5, -moonDir.z * 26), V(-moonDir.x * 21, 2.2, -moonDir.z * 21)], [V(0, 1.2, 0), V(0, 1.4, 0)], {fov: [28, 25], curve: (u) => u * (2 - u)}), {focus: C}),
+    /* F1 straight down the middle bay toward the moon: push in on the frozen sword point */
+    Object.assign(pathShot('still', 4, [V(.1, 1.15, 6.2), V(.05, 1.0, 4.4)], [V(0, .55, 1.8), V(-.4, .65, 1.8)], {fov: [30, 24], curve: (u) => u * (2 - u)}), {focus: C}),
     Object.assign(pathShot('impact', 4, [V(-38, 6, 34), V(-42, 7, 37)], [V(0, 1, 0), V(0, 2, 0)], {fov: [34, 36], shake: .25}), {focus: C}),
     Object.assign(pathShot('pullout', 8, [V(30, 14, 34), V(110, 70, 140), V(240, 200, 330)], [V(0, 0, 0), V(-10, -10, -10), V(-30, -20, -30)], {fov: [40, 46], curve: (u) => 1 - Math.pow(1 - u, 2.4)}), {focus: C}),
     Object.assign(pathShot('sky', 6, [V(14, 4, 14), V(14, 6, 14)], [V(24, 160, 0), V(18, 170, -6)], {fov: [62, 66]}), {focus: C}),
@@ -94,9 +107,10 @@ export default function act6({scene, mats, moonL, hemi, bloom, grade, renderer})
   const m = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), p = new THREE.Vector3(), s = new THREE.Vector3(1, 1, 1), z = new THREE.Vector3();
   let cur = null;
   return {
-    moonDir, sky, shots, shadowAhead: 30,
-    update(t, lt, sh) {
+    moonDir, sky, shots, shadowAhead: 30, events,
+    update(t, lt, sh, cam) {
       if (cur !== sh) { cur = sh; set.seat(sh.focus); }
+      cast.update(t, cam); for (const A of cast.all) if (A.shown !== (sh.name !== 'sky')) A.show(sh.name !== 'sky');
       const dt = t - T0, R1 = dt > 0 ? dt * SPEED : -100, R2 = dt > 2.5 ? (dt - 2.5) * SPEED * .75 : -100;
       uni.uR.value = R1; uni.uR2.value = R2;
       /* the frozen instant: no wind, no flicker; after impact the chimes and the great bell swing hard */
