@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import {buildSky, buildMountains, HOR} from '../sky.js';
 import {makeCast} from '../cast.js';
 import {loadPeople} from '../people.js';
+import {overheadShot, dollyZoom, ramp, crash, withWhip} from '../cam.js';
 import {makeSwordStorm, makeSwordRain, makeSwordFan, makeStrikes, makeThousandHands} from '../skills.js';
 
 /* Test stage for the technique effects: the two face off on a stone court while each effect fires in turn. */
@@ -35,8 +36,9 @@ export default async function skilltest({scene, mats, grade}) {
 
   const shot = (name, dur, fn) => ({name, dur, cam: fn});
   const shots = [
-    shot('rain', 6, (t, c) => { c.position.set(-1, 2.2, 9); c.lookAt(2, 1.5, 0); c.fov = 42; }),
-    shot('cuts', 8, (t, c) => { c.position.set(0, 1.6, 6.5); c.lookAt(0, 1.3, 0); c.fov = 40; }),
+    withWhip(Object.assign(overheadShot('rain', 6, [3, 0, 0], {h0: 26, h1: 14, spin: .6}), {}), {dir: 1}),
+    Object.assign(shot('cuts', 8, (t, c) => { c.position.set(0, 1.6, 6.5); c.lookAt(0, 1.3, 0); c.fov = crash(40, 18, 5.5)(t); }), {time: ramp([[0, 1], [.2, .2], [1.6, .2], [2, 1]]), whip: (lt, v) => { const k = Math.max(0, 1 - lt / .22); v.set(-.14 * k * k, 0); }}),
+    dollyZoom('dz', 3, [3, 1.5, 0], [-1, .1, .3], {d0: 3, d1: 10, width: 1.8}),
     shot('fan', 6, (t, c) => { c.position.set(-2, 3.5, 14); c.lookAt(1, 2.5, 0); c.fov = 44; }),
     shot('storm', 16, (t, c) => { const u = t / 16; c.position.set(-60 + u * 20, 25 + u * 30, 120 - u * 40); c.lookAt(C.x, 40 + u * 20, C.z); c.fov = 50; }),
   ];

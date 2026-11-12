@@ -38,11 +38,12 @@ const bloom = new UnrealBloomPass(new THREE.Vector2(W, H), .75, .55, .82);
 composer.addPass(bloom);
 composer.addPass(new OutputPass());
 const grade = new ShaderPass({
-  uniforms: {tDiffuse: {value: null}, uT: {value: 0}, uVig: {value: .9}, uTint: {value: new THREE.Vector3(.92, .96, 1.08)}, uLift: {value: new THREE.Vector3(.012, .008, .03)}, uInv: {value: 0}, uFlash: {value: 0}, uFade: {value: 1}},
+  uniforms: {tDiffuse: {value: null}, uT: {value: 0}, uVig: {value: .9}, uTint: {value: new THREE.Vector3(.92, .96, 1.08)}, uLift: {value: new THREE.Vector3(.012, .008, .03)}, uInv: {value: 0}, uFlash: {value: 0}, uFade: {value: 1}, uWhip: {value: new THREE.Vector2()}},
   vertexShader: `varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
-  fragmentShader: `uniform sampler2D tDiffuse;uniform float uT,uVig,uInv,uFlash,uFade;uniform vec3 uTint,uLift;varying vec2 vUv;
+  fragmentShader: `uniform sampler2D tDiffuse;uniform float uT,uVig,uInv,uFlash,uFade;uniform vec3 uTint,uLift;uniform vec2 uWhip;varying vec2 vUv;
     float h(vec2 p){return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453);}
     void main(){vec3 c=texture2D(tDiffuse,vUv).rgb;
+      if(dot(uWhip,uWhip)>1e-8){c=vec3(0.);for(int i=0;i<15;i++)c+=texture2D(tDiffuse,vUv+uWhip*(float(i)/14.-.5)).rgb;c/=15.;}  /* whip-pan smear */
       c=mix(c,c*uTint,.5);c+=uLift;
       float l=dot(c,vec3(.299,.587,.114));c=mix(c,vec3(smoothstep(.55,.0,l)),uInv);  /* impact frame: stark inverted black/white */
       c=mix(c,vec3(1.,.95,.85),uFlash);c*=uFade;
@@ -80,12 +81,15 @@ const fwd = new THREE.Vector3();
 function draw(t) {
   let k = 0; while (k < shots.length - 1 && t >= starts[k + 1]) k++;
   const sh = shots[k], lt = t - starts[k];
-  sh.cam(lt, camera); camera.updateProjectionMatrix();
-  S.update?.(t, lt, sh, camera);
+  /* a shot may run the action at its own speed (slow motion, speed ramps, a frozen instant): st = action time */
+  const st = (sh.t0 ?? starts[k]) + (sh.time ? sh.time(lt) : lt);
+  camera.up.set(0, 1, 0); sh.cam(lt, camera, st); camera.updateProjectionMatrix();
+  grade.uniforms.uWhip.value.set(0, 0); sh.whip?.(lt, grade.uniforms.uWhip.value);
+  S.update?.(st, lt, sh, camera);
   camera.getWorldDirection(fwd);
   const aim = camera.position.clone().addScaledVector(fwd, S.shadowAhead ?? 40);
   moonL.target.position.copy(aim); moonL.position.copy(aim).addScaledVector(S.moonDir, 200);
-  S.sky?.update(camera, t); grade.uniforms.uT.value = t;
+  S.sky?.update(camera, st); grade.uniforms.uT.value = t;
   composer.render();
 }
 
