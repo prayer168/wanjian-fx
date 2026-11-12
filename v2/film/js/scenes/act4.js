@@ -143,7 +143,6 @@ export default async function act4({scene, hemi, moonL, bloom, renderer, mats, g
       cast.update(t, cam);
       const kk = cast.kick(t); cam.position.x += Math.sin(t * 91) * kk.shake; cam.position.y += Math.sin(t * 73) * kk.shake;
       grade.uniforms.uFlash.value = kk.flash * .35;
-      if (HIDE.includes('fx')) scene.traverse((o) => { if (o.isPoints) o.visible = false; });
     },
   };
 }
