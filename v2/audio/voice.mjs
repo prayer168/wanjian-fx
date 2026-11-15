@@ -3,17 +3,19 @@
 // Needs GEMINI_API_KEY in the environment. Designed voice ids are kept in audio/voices.json; audio is cached in out/audio/vo/.
 //   node voice.mjs            create voices if needed, synthesize every line that isn't cached
 //   node voice.mjs --redo id  re-synthesize one line
+// LINES=<module exporting LINES> and VO_OUT=<dir> point it at another film's lines (the AI cut uses ai/film.mjs).
 import {writeFileSync, readFileSync, existsSync, mkdirSync} from 'node:fs';
 import {dirname, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
-import {LINES} from './lines.mjs';
+import {pathToFileURL} from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
+const {LINES} = await import(process.env.LINES ? pathToFileURL(resolve(process.env.LINES)).href : './lines.mjs');
 const KEY = process.env.GEMINI_API_KEY;
 if (!KEY) { console.error('GEMINI_API_KEY is not set'); process.exit(1); }
 const API = 'https://generativelanguage.googleapis.com/v1beta', MODEL = 'gemini-3.8-flash-tts';
-const VFILE = resolve(here, 'voices.json'), OUT = resolve(here, '../out/audio/vo');
+const VFILE = resolve(here, 'voices.json'), OUT = process.env.VO_OUT || resolve(here, '../out/audio/vo');
 mkdirSync(OUT, {recursive: true});
 
 /* permanent traits only; emotion goes in each line's style */
