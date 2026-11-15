@@ -47,7 +47,7 @@ https://www.youtube.com/watch?v=V1axyqJQC6Q&t=3861s （風起東山《師姐姜�
 | 項目 | 位置 | 狀態 |
 |---|---|---|
 | ComfyUI 可攜版 v0.45.0（nvidia） | `D:\ComfyUI\ComfyUI_windows_portable\` | 已下載並解壓（`run_nvidia_gpu.bat`、`python_embeded`），尚未啟動過 |
-| `wan_2.1_vae.safetensors` | `D:\ComfyUI-modelsae\` | 完成 |
+| `wan_2.1_vae.safetensors` | `D:\ComfyUI-models\vae\` | 完成 |
 | lightx2v 4 步 LoRA（high／low noise） | `D:\ComfyUI-models\loras\` | 完成 |
 | `umt5_xxl_fp8_e4m3fn_scaled.safetensors` | `D:\ComfyUI-models\text_encoders\` | 完成（6,735,906,897 位元組） |
 | `wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors` | `D:\ComfyUI-models\diffusion_models\` | 完成（14,294,742,832 位元組） |
