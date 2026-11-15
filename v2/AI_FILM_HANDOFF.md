@@ -65,6 +65,16 @@ https://www.youtube.com/watch?v=V1axyqJQC6Q&t=3861s （風起東山《師姐姜�
 2. 在 ComfyUI 的 `extra_model_paths.yaml` 指向 `D:\ComfyUI-models`，啟動後用 HTTP API（`/prompt`）送工作流程，方便全自動批次生成。
 3. 16 GB 顯示卡建議：Wan 2.2 I2V 14B fp8 + lightx2v 4 步 LoRA，先 832×480、81 格（16 fps，約 5 秒）測試，再試 1280×720。事後用 FFmpeg 補格到 30 或 60 fps、放大到 1080p。
 
+## 進度（2026-11-16 凌晨更新：流程已跑通，等使用者看測試鏡頭）
+
+- ComfyUI 用 `v2/ai/start-comfy.ps1` 啟動，連接埠 **8189**。8188 是本機另一套 `D:\AI-Local\ComfyUI`（別的專案），兩套共用顯示卡：不要關掉它；它閒置時若佔著顯示記憶體，可確認佇列是空的再呼叫它的 `POST /free`。
+- `v2/ai/keyframe.mjs`（Nano Banana Pro 關鍵畫面）、`v2/ai/wan.mjs`（Wan 2.2 I2V，HTTP API）、`v2/ai/post.mjs`（補格、放大、調色）都可用，提示詞在 `v2/ai/prompts/`。
+- 金鑰在使用者環境變數，行程環境讀不到時用 PowerShell：`$env:GEMINI_API_KEY = [Environment]::GetEnvironmentVariable('GEMINI_API_KEY','User')`。
+- `py -3.12` 在這台機器找不到（3.12 是 uv 裝的）；腳本用 Node，ComfyUI 用內附 Python。
+- 速度：832×480 81 格約 3 分鐘；1280×720 81 格約 9 分鐘。
+- 測試鏡頭：`v2/out/ai-test-shot-02.mp4`（寫實風格，建議方向）、`v2/out/ai-test-shot-01.mp4`（偏 CG，對照）。已交給使用者，**尚未得到確認**；確認前不要開始寫劇本與批次生成。
+- 關鍵畫面的提示詞要寫成「真人實拍劇照」才會寫實（見 `prompts/test02.key.txt`）；觀察到的問題與對策記在 `history.md` 第四節之 8。
+
 ## 建議的製作流程
 
 1. **測試鏡頭**：一張關鍵畫面（Nano Banana Pro）加一段 5 秒打鬥影片（Wan 2.2），先給使用者看，確認方向。

@@ -54,6 +54,10 @@
 - 「兩者都在修正，但是我看完影片之後，發現 3D 的人物裡面各個部分看起來都是拼湊的，而且很不完整……有非常非常多的破綻，這個有辦法修復嗎？」
 - （附 YouTube 連結 https://www.youtube.com/watch?v=V1axyqJQC6Q&t=3861s ）「請你幫我完整分析這部影片的動畫、視覺風格。我想改做這種風格的影片，3D 渲染暫時先不用了，除非可以保證出來的效果能跟這支影片一樣。……試做一支 3 到 5 分鐘的短片，除了市面上有的武打特效都要有之外，再加上更多創新、有創意的特效……」
 
+### 第四階段：改走 AI 生成影片（2026-11-15 起）
+- 影片生成工具 → 選擇「本機 Wan 2.2（免費）」，已知畫質與打鬥動作會比參考影片差一截、整片要跑一兩天；雲端付費模型當備案。
+- 可以自行下載、安裝任何需要的程式；所有素材與模型必須可商用；角色要原創。
+
 ---
 
 ## 三、軟體與開源專案
@@ -73,10 +77,15 @@
 | [Mixamo](https://www.mixamo.com/)（Adobe） | — | 武術、劍術、翻滾等動作捕捉（v3） | 免版稅可用於商業影片；原始檔不得散布，故不放進 GitHub |
 | Git + [GitHub CLI](https://cli.github.com/) | — | 版本控制、推送、PR | MIT |
 | winget | — | 安裝 gh、Blender | — |
+| [ComfyUI](https://github.com/Comfy-Org/ComfyUI) 可攜版 | v0.45.0（nvidia，Python 3.13、PyTorch 2.14.1+cu130） | AI 影片路線：以 HTTP API 送工作流程，本機跑圖生影片 | GPL-3.0（產出物不受限） |
+| [Wan 2.2 I2V 14B](https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged)（阿里巴巴通義萬相） | fp8 scaled，high／low noise 各 14.3 GB | 圖生影片 | **Apache-2.0** |
+| [lightx2v 4 步 LoRA](https://huggingface.co/lightx2v/Wan2.2-Lightning)（Wan2.2-Lightning） | i2v v1，high／low noise | 把取樣從數十步縮到 4 步 | Apache-2.0 |
+| umT5-XXL 文字編碼器、Wan 2.1 VAE | fp8 scaled | Wan 的提示詞編碼與影像解碼 | Apache-2.0 |
+| [Nano Banana Pro](https://ai.google.dev/)（Google，`gemini-3-pro-image`） | 2026 | 每個鏡頭的關鍵畫面、角色定裝圖 | Gemini API 服務條款（輸出帶 SynthID 隱形浮水印；商用條件正式製作前再核對一次條款） |
 
 字型：v1 曾用 Google Fonts「Ma Shan Zheng」（OFL）做片名，使用者要求拿掉標題後已移除。
 
-**未使用**：VRoid（動漫風格不符寫實要求）、任何 AI 生圖或生成影片模型、任何有版權的音樂或音效素材。音樂與音效都是程式合成；只有角色配音使用 AI 語音（Gemini TTS）。上傳 YouTube 時，依平台規定應勾選「含合成內容」的揭露。
+**3D 版（v1–v3）未使用**：VRoid（動漫風格不符寫實要求）、任何 AI 生圖或生成影片模型、任何有版權的音樂或音效素材。音樂與音效都是程式合成；只有角色配音使用 AI 語音（Gemini TTS）。AI 影片路線（第四階段）則是整個畫面由 AI 生成。上傳 YouTube 時，依平台規定應勾選「含合成內容」的揭露。
 
 ---
 
@@ -172,6 +181,41 @@
 ### 7. 輸出（`v2/out`，不上傳 GitHub）
 `scene-*.mp4`（八段）→ 剪接 → `wanjian2-full-v2.mp4` → 加聲音 → `wanjian2-full-v2-sound.mp4`。v2 整片渲染約 30 分鐘（RTX 5060 Ti）。
 
+### 8. AI 影片路線（`ai/`，2026-11-16 起）
+
+做法是「關鍵畫面圖 → 圖生影片 → 後製」，每個鏡頭只要求一個清楚的動作。
+
+1. **關鍵畫面**（`ai/keyframe.mjs`）：呼叫 Nano Banana Pro（`gemini-3-pro-image` 的 `generateContent`，`responseModalities: ["IMAGE"]`、16:9、2K），可用 `--ref` 帶入角色定裝圖。金鑰只從環境變數 `GEMINI_API_KEY` 讀取。回傳的是 2752×1536 的 JPEG。
+2. **圖生影片**（`ai/wan.mjs`）：把關鍵畫面裁到目標尺寸、上傳到 ComfyUI（`/upload/image`），用 `/prompt` 送出工作流程，輪詢 `/history/<id>` 等完成。
+   - 工作流程：`UNETLoader`（high noise）→ `LoraLoaderModelOnly`（lightx2v high，強度 1）→ `ModelSamplingSD3`（shift 5）→ `KSamplerAdvanced`（第 0–2 步，cfg 1，euler／simple，保留剩餘雜訊）→ 換 low noise 模型與 LoRA 跑第 2–4 步 → `VAEDecode` → `SaveImage`。條件由 `WanImageToVideo`（起始畫面＋正負提示詞＋VAE）產生。
+   - 輸出存成 PNG 逐格圖，再由腳本用 FFmpeg 編成 MP4，後製可以從乾淨的畫面開始。
+   - 81 格（16 fps，約 5 秒）。
+3. **後製**（`ai/post.mjs`）：FFmpeg 動態補格到 30 fps（`minterpolate`）、放大到 1920×1080、輕微銳化、電影調色（暗部偏冷、亮部微暖、降飽和）、暗角、底片顆粒。
+4. **ComfyUI**：可攜版裝在 `D:\ComfyUI\ComfyUI_windows_portable\`，模型集中在 `D:\ComfyUI-models\`，由 `ComfyUI\extra_model_paths.yaml` 指過去。用 `ai/start-comfy.ps1` 啟動在連接埠 **8189**（8188 已被本機另一套 `D:\AI-Local\ComfyUI` 佔用，那是別的專案）。兩套共用同一張顯示卡，`wan.mjs` 送工作前會先等 8188 的佇列清空。
+
+**測試鏡頭的提示詞**（全文在 `ai/prompts/`）
+- `test01.key.txt`：月下屋脊、白衣劍客與袒右肩的武僧對峙，中遠景全身。結果偏 CG 插畫感（月亮太大、整體太「乾淨」）。
+- `test02.key.txt`：強調「真人實拍的電影劇照、真實皮膚毛孔與布料皺褶、不是插畫或 CG」、自然大小的月亮、膝上中景、50mm 變形鏡頭 f/2。結果是寫實真人質感，接近參考影片的畫面風格。
+- `test02.move.txt`（圖生影片）：劍客刺出 → 和尚掌拍劍身迸出火花 → 和尚回掌 → 劍客後仰轉身再斬 → 和尚前臂擋下；手持鏡頭緩慢右繞。
+
+**實測速度**（RTX 5060 Ti 16 GB，4 步）
+
+| 尺寸 | 格數 | 時間 |
+|---|---|---|
+| 832×480 | 81 | 2 分 45 秒（含第一次載入模型） |
+| 1280×720 | 81 | 約 9 分鐘 |
+
+以 720p 計，50 個鏡頭、每個鏡頭平均重做 2–3 次，約 15–25 小時的顯示卡時間。
+
+**測試鏡頭看到的問題**
+- 道具不穩：劍在鏡頭後段會變形、換手，最後兩人近身時劍消失；480p 的偏 CG 版本還多出第二把劍。
+- 服裝細節會漂移：和尚袒露的手臂換邊、劍客的護腕不見。
+- 動作是「看起來像在打」，不是有套路的武術：沒有真正的命中與受力，節奏偏軟。
+- 中景的臉可以接受；遠景全身時臉會糊。
+- 原始只有 16 fps，補格後快動作邊緣可能有殘影。
+
+對策（正式製作時）：每個鏡頭只做一個動作並縮短到 2–4 秒、在道具出錯前就剪掉；多用首尾格控制（`WanFirstLastFrameToVideo`）；特寫與中景為主、遠景只做氣氛；火花、劍氣、掌印等特效在後製疊加；每個鏡頭多跑幾個種子挑最好的。
+
 ---
 
 ## 五、版本與提交
@@ -209,6 +253,11 @@ PR：https://github.com/prayer168/wanjian-fx/pull/1
 | 第二幕載入逾時 | 對整座城的瓦片做數百次射線偵測 | 只取路線附近的三角形 |
 | 第六幕卡住 | 定格段速度為 0，結算事件時除以 0 形成無限迴圈 | 定格段不產生事件 |
 | 峰值超過 0 dBFS | AAC 編碼讓峰值升高 | 限幅到 −3 dB 再編碼 |
+| 要跑 Wan 時顯示記憶體已被佔掉 14 GB | 本機另一套 ComfyUI（`D:\AI-Local`，連接埠 8188，別的專案）閒置中但模型還留在顯示記憶體 | 確認它的佇列是空的，呼叫它的 `/free` 卸載模型（不關閉服務，下次有工作會自動重新載入）；本片的 ComfyUI 改開在 8189，送工作前先等 8188 佇列清空 |
+| `py -3.12` 找不到 Python | 3.12 是 uv（Astral）裝的，登錄名稱是 `Astral/CPython3.12.16`，Python 啟動器不認 `-3.12` | 流程腳本全部用 Node；ComfyUI 用可攜版內附的 Python 3.13 |
+| Bash 裡讀不到 `GEMINI_API_KEY` | 金鑰設在使用者環境變數，這個工作階段的行程環境沒有帶到 | 在 PowerShell 用 `[Environment]::GetEnvironmentVariable('GEMINI_API_KEY','User')` 帶進該次執行，不落地 |
+| 關鍵畫面的副檔名與內容不符 | 檔名給 `.png`，但 Nano Banana Pro 回傳的是 JPEG | 存成 `.jpg`；送進 Wan 前用 FFmpeg 轉成裁好的 PNG |
+| 第一張關鍵畫面像遊戲 CG | 提示詞寫了巨大滿月、發光掌心等奇幻元素 | 改寫成「真人實拍劇照」的描述，奇幻光效留給圖生影片與後製 |
 
 ---
 
@@ -228,6 +277,8 @@ PR：https://github.com/prayer168/wanjian-fx/pull/1
 | 2026-11-12 深夜 | 動作捕捉上線：寫 `mocap.js`（Mixamo → MakeHuman 重定向、含手指與位移、自動找出命中與落地）、`director.js`（節拍 → 兩人動作軌道＋即時跟拍鏡頭＋慢動作時間換算＋招式特效接線）；第一至六幕與尾聲全部改寫成兩人連續交手；第六幕加入萬劍歸宗與千手如來掌的 10 秒前奏；配樂強弱改由各幕打擊密度決定；開始重算 v3 全片 |
 | 2026-11-12 深夜 | v3 全片第一次成片（4:36，−14.1 LUFS）。檢查時發現第二幕少一個逗號導致渲染失敗、成片仍用舊版第二幕，修正後只重算第二幕並重做聲音與合成 |
 | 2026-11-15 | 使用者看完 v3 後認為 3D 人物拼湊感重、動作卡頓；改變方向。分析參考影片（風起東山《師姐姜顏千年修行路》）：屬於「AI 生成影片」的寫實真人電影風格，不是 3D 渲染。3D 路線暫停（進行中的服裝修正未完成、未提交）。待使用者決定影片生成工具 |
+| 2026-11-15 晚上 | 使用者選定本機 Wan 2.2。下載 ComfyUI 可攜版 v0.45.0 與約 38 GB 的 Wan 2.2 I2V 模型到 D 槽（前一個對話完成） |
+| 2026-11-16 凌晨 | AI 影片路線跑通：設定 `extra_model_paths.yaml`、ComfyUI 開在 8189、寫 `ai/keyframe.mjs`（Nano Banana Pro 關鍵畫面）、`ai/wan.mjs`（Wan 2.2 I2V＋lightx2v 4 步，走 HTTP API）、`ai/post.mjs`（補格、放大、調色）。做出三段測試鏡頭（480p 一段、720p 兩段），成品 `out/ai-test-shot-02.mp4`（寫實風格）與 `out/ai-test-shot-01.mp4`（偏 CG，對照用）交給使用者看，等確認方向後再寫劇本與分鏡 |
 
 ## 八、研究參考
 
