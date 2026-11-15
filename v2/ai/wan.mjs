@@ -25,12 +25,16 @@ if (!name || !o.image || !o.prompt) { console.error('usage: node wan.mjs <name> 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const get = async (u) => (await fetch(u)).json();
 
-/* the GPU is shared: let the other ComfyUI finish first */
-for (;;) {
+/* the GPU is shared: let the other ComfyUI finish first. Its client queues one job at a time with a few seconds between them,
+   so an empty queue at one instant means nothing; start only after it has stayed idle for IDLE_S seconds (default 90). */
+const IDLE_S = Number(process.env.IDLE_S ?? 90);
+for (let idle = 0, said = 0; idle < IDLE_S;) {
   let q = null;
   try { q = OTHER && await get(`${OTHER}/queue`); } catch { /* not running */ }
-  if (!q || (!q.queue_running.length && !q.queue_pending.length)) break;
-  console.log('other ComfyUI is busy, waiting…'); await sleep(30000);
+  if (!q) break;
+  if (!q.queue_running.length && !q.queue_pending.length) idle += 10;
+  else { idle = 0; if (Date.now() - said > 600000) { console.log(`[${new Date().toLocaleTimeString()}] other ComfyUI is busy, waiting…`); said = Date.now(); } }
+  if (idle < IDLE_S) await sleep(10000);
 }
 
 /* crop the keyframe to the exact size and upload it */
