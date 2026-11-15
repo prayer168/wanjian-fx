@@ -49,7 +49,7 @@ https://www.youtube.com/watch?v=V1axyqJQC6Q&t=3861s （風起東山《師姐姜�
 | ComfyUI 可攜版 v0.45.0（nvidia） | `D:\ComfyUI\ComfyUI_windows_portable\` | 已下載並解壓（`run_nvidia_gpu.bat`、`python_embeded`），尚未啟動過 |
 | `wan_2.1_vae.safetensors` | `D:\ComfyUI-modelsae\` | 完成 |
 | lightx2v 4 步 LoRA（high／low noise） | `D:\ComfyUI-models\loras\` | 完成 |
-| `umt5_xxl_fp8_e4m3fn_scaled.safetensors` | `D:\ComfyUI-models	ext_encoders\` | 完成（6,735,906,897 位元組） |
+| `umt5_xxl_fp8_e4m3fn_scaled.safetensors` | `D:\ComfyUI-models\text_encoders\` | 完成（6,735,906,897 位元組） |
 | `wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors` | `D:\ComfyUI-models\diffusion_models\` | 完成（14,294,742,832 位元組） |
 | `wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors` | 同上 | 完成（14,294,742,832 位元組） |
 
@@ -61,9 +61,8 @@ https://www.youtube.com/watch?v=V1axyqJQC6Q&t=3861s （風起東山《師姐姜�
   （文字編碼器在 `Comfy-Org/Wan_2.1_ComfyUI_repackaged`）
 
 接手時：
-1. 先確認是否還有 `curl.exe` 在下載（檔案大小是否還在變）。還在跑就等它；已中斷就用 `curl -L -C - --retry 8 -o <檔> <網址>` 續傳。不要兩邊同時寫同一個檔。
-2. 解壓 `portable.7z`（Git Bash 沒有 7z；可試 `C:\Windows\System32\tar.exe -xf`，不行就用 winget 裝 7-Zip）。
-3. 在 ComfyUI 的 `extra_model_paths.yaml` 指向 `D:\ComfyUI-models`，啟動後用 HTTP API（`/prompt`）送工作流程，方便全自動批次生成。
+1. 下載與解壓都已完成，不需要再下載。
+2. 在 ComfyUI 的 `extra_model_paths.yaml` 指向 `D:\ComfyUI-models`，啟動後用 HTTP API（`/prompt`）送工作流程，方便全自動批次生成。
 3. 16 GB 顯示卡建議：Wan 2.2 I2V 14B fp8 + lightx2v 4 步 LoRA，先 832×480、81 格（16 fps，約 5 秒）測試，再試 1280×720。事後用 FFmpeg 補格到 30 或 60 fps、放大到 1080p。
 
 ## 建議的製作流程
