@@ -28,12 +28,12 @@ const ships = SHOTS.filter((s) => !only || only.includes(s.id)), list = [];
 for (const s of ships) {
   const clip = join(OUT, 'clips', `${s.id}.mp4`), seg = join(SEG, `${s.id}.mp4`), sp = s.speed || 1;
   const flash = FLASH[s.id] !== undefined ? `,eq=brightness=0.45:contrast=0.7:enable='between(t,${FLASH[s.id]},${FLASH[s.id] + 0.09})'` : '';
-  if (existsSync(clip) && !(existsSync(seg) && statSync(seg).mtimeMs > statSync(clip).mtimeMs)) {
+  if (!s.still && existsSync(clip) && !(existsSync(seg) && statSync(seg).mtimeMs > statSync(clip).mtimeMs)) {
     /* real footage: speed, interpolate, hold the last frame if the clip runs short, cut to length */
     ff(['-i', clip, '-vf', `setpts=PTS/${sp},minterpolate=fps=${FPS}:mi_mode=mci:mc_mode=aobmc:me_mode=bidir:vsbmc=1,tpad=stop_mode=clone:stop_duration=3,trim=0:${s.dur},setpts=PTS-STARTPTS,${GRADE}${flash}`,
       '-r', String(FPS), '-an', '-c:v', 'libx264', '-crf', '14', '-preset', 'medium', seg]);
-  } else if (!existsSync(clip)) {
-    /* stand-in: the keyframe with a slow push in */
+  } else if (s.still || !existsSync(clip)) {
+    /* stand-in (or a shot meant to be still): the keyframe with a slow push in */
     const n = Math.round(s.dur * FPS);
     ff(['-loop', '1', '-i', join(OUT, 'key', `${s.id}.jpg`), '-vf', `scale=3840:2160,zoompan=z='1+0.06*on/${n}':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=${n}:s=1920x1080:fps=${FPS},${GRADE}${flash}`,
       '-frames:v', String(n), '-an', '-c:v', 'libx264', '-crf', '16', '-preset', 'fast', join(SEG, `${s.id}.still.mp4`)]);

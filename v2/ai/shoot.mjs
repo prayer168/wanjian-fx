@@ -16,7 +16,7 @@ const only = a.filter((x, i) => !x.startsWith('--') && !a[i - 1]?.startsWith('--
 const W = opt('w', 1280), H = opt('h', 720), SEED = opt('seed', 1);
 const STYLE = 'Photorealistic live-action feature film footage, real actors, natural physical motion, faces and costumes stay consistent, cinematic lighting, atmospheric haze, film grain.';
 
-const list = SHOTS.filter((s) => (!only.length || only.includes(s.id)) && (redo || !existsSync(join(OUT, 'clips', `${s.id}.mp4`))));
+const list = SHOTS.filter((s) => !s.still && (!only.length || only.includes(s.id)) && (redo || !existsSync(join(OUT, 'clips', `${s.id}.mp4`))));
 console.log(`${list.length} shots to generate`);
 for (const s of list) {
   const key = join(OUT, 'key', `${s.id}.jpg`);
