@@ -35,15 +35,31 @@ await Promise.all(todo.map((c) => new Promise((ok) => {
   execFile('node', [join(here, 'lyria.mjs'), join(M, c.id), '--prompt', prompt], (e, so, se) => { console.log(c.id, Math.round(c.len) + 's', (so + se).trim().split('\n')[0]); ok(); });
 })));
 
-/* join: each cue placed at its act start, 1.2 s crossfade into the next; trimmed or faded to fit */
+/* Lyria returns each cue at its own length (m4: 117 s for 85 asked) and puts its big moments where it likes, so the score is cut
+   from the cues by their loudness curves: each piece plays the cue from `from` seconds at `at` on the edit timeline until `until`,
+   crossfading into the next. m4 goes silent at 50–55 s and slams back at 56 s: that slam is put on the dragon (s39), which lays
+   the silence over the arrows turning (s38), the crack (s35) on its drop to a held note and the river wall (s41) on its peak;
+   its release (from 106 s) plays under the dome dissolving (s43). */
+const PIECES = [
+  {c: 'm1', from: 0, at: 0, until: T.s07},
+  {c: 'm2', from: 0, at: T.s07, until: T.n09},
+  {c: 'm3', from: 0, at: T.n09, until: T.s39 - 56},
+  {c: 'm4', from: 0, at: T.s39 - 56, until: T.s43},
+  {c: 'm4', from: 106, at: T.s43, until: T.s44},
+  {c: 'm5', from: 0, at: T.s44, until: T.end},
+];
+/* the music steps back where the picture goes still: frozen time (s19–s21) and the beads falling into the canal (s26) */
+const DIP = [[T.s19, 1], [T.s19 + 1.5, .3], [T.s22 - .3, .3], [T.s22, 1], [T.s26, 1], [T.s26 + .8, .35], [T.s27 + 2, .5], [T.s28, 1]];
 if (CUES.every((c) => existsSync(join(M, `${c.id}.mp3`)))) {
   const XF = 1.2, args = [], f = [];
-  CUES.forEach((c, i) => {
-    const last = i === CUES.length - 1, st = i ? c.start - XF / 2 : 0, len = (last ? T.end : T[c.to] + XF / 2) - st;
-    args.push('-i', join(M, `${c.id}.mp3`));
-    f.push(`[${i}:a]aresample=48000,atrim=0:${len.toFixed(3)},afade=t=in:d=${i ? XF : 0.01},afade=t=out:st=${(len - (last ? 4 : XF)).toFixed(3)}:d=${last ? 4 : XF},adelay=${Math.round(st * 1000)}:all=1[c${i}]`);
+  PIECES.forEach((p, i) => {
+    const first = i === 0, last = i === PIECES.length - 1, st = first ? 0 : p.at - XF / 2, len = (last ? p.until : p.until + XF / 2) - st;
+    const from = Math.max(0, p.from - (p.at - st));
+    args.push('-i', join(M, `${p.c}.mp3`));
+    f.push(`[${i}:a]aresample=48000,atrim=${from.toFixed(3)}:${(from + len).toFixed(3)},asetpts=PTS-STARTPTS,afade=t=in:d=${first ? .01 : XF},afade=t=out:st=${(len - (last ? 4 : XF)).toFixed(3)}:d=${last ? 4 : XF},adelay=${Math.round(st * 1000)}:all=1[c${i}]`);
   });
-  f.push(`${CUES.map((_, i) => `[c${i}]`).join('')}amix=inputs=${CUES.length}:normalize=0[out]`);
+  const dip = DIP.slice(1).map(([b, vb], k) => { const [a, va] = DIP[k]; return `between(t,${a.toFixed(2)},${b.toFixed(2)})*(${va}+(${vb - va})*(t-${a.toFixed(2)})/${(b - a).toFixed(2)})`; }).join('+');
+  f.push(`${PIECES.map((_, i) => `[c${i}]`).join('')}amix=inputs=${PIECES.length}:normalize=0,volume='if(between(t,${DIP[0][0].toFixed(2)},${DIP.at(-1)[0].toFixed(2)}),${dip},1)':eval=frame[out]`);
   execFileSync('ffmpeg', ['-v', 'error', '-y', ...args, '-filter_complex', f.join(';'), '-map', '[out]', '-c:a', 'pcm_s16le', join(M, 'score.wav')], {stdio: 'inherit'});
   console.log('score', join(M, 'score.wav'));
 }

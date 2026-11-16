@@ -8,6 +8,7 @@
 //   ramp: speed ramp instead of one speed — [[source seconds up to, speed], ...] e.g. fast into an impact, slow on it, fast out
 //   tr:   how this shot comes in — {type: 'dissolve', d: 1} (default is a straight cut)
 //   ext:  the clip is extended once with a second Wan pass that starts from its last frame (extmove = that pass's prompt)
+//   flip: the clip is mirrored in the edit (keeps the swordsman left / monk right when Wan put them the other way round)
 //   Fight rules: the swordsman is always screen LEFT and the monk screen RIGHT; the monk meets the blade only with his palm on
 //   the FLAT of the blade, at the swordsman's wrist, or with his bronze-hard forearm — a blade never passes into a body.
 
@@ -68,7 +69,7 @@ export const SHOTS = [
   {id: 'n02', refs: ['S_sheet', 'S_face', 'M_sheet', 'tower'], dur: 4,
     key: `Medium two-shot at night in the open top floor of the bell tower: ${'$S'} on the LEFT rises to his full height, sword held low at his side pointing at the floor, a faint confident smile; ${'$M'} on the RIGHT faces him, hands loosely together in front of him; the enormous bronze bell hangs behind and between them. Oil lamps flicker, wind blows through the open sides.`,
     move: `The swordsman straightens up and says a short sentence to the monk with a faint smile, his lips moving as he speaks; the monk watches him without moving. Lamp flames bend in the wind. Very slow push in.`},
-  {id: 'n03', refs: ['M_face', 'M_sheet', 'tower'], dur: 2.8,
+  {id: 'n03', refs: ['M_face', 'M_sheet', 'tower'], dur: 3.1,
     key: `Close-up at night of ${'$M'} in the top floor of the bell tower, warm lamp light on one side of his face, cool moonlight on the other, the bronze bell out of focus behind him; stern and calm, looking toward the left of frame.`,
     move: `The monk says a few short words slowly and firmly, his lips moving as he speaks, then his jaw sets. Static camera.`},
   {id: 's08', refs: ['tower', 'M_sheet'], dur: 3, ramp: [[0.6, 1.5], [1.4, 0.6], [9, 1.3]],
@@ -101,7 +102,7 @@ export const SHOTS = [
   {id: 's13', refs: ['S_sheet', 'S_face', 'tower'], dur: 4, speed: 0.55,   // Wan fades the ink after ~2.3 s: use that part in slow motion
     key: `Medium shot at night on the bell tower eave: ${'$S'} sweeps his sword through the air in a great arc, and the path of the blade is left hanging in the air as a huge sweeping brush stroke of thick wet black ink, abstract like a giant calligraphy stroke (not a readable character), dripping, glossy, suspended in front of him. ${'$FX'}`,
     move: `The thick black ink stroke stays hanging in mid-air the whole time, it never fades: drips stretch down from it, then the ink hardens and splits into dozens of glossy black blades that shoot forward toward the camera. The swordsman holds his pose, his sword stays steel grey. Slow push in.`, seed: 5},
-  {id: 's14', refs: ['M_sheet', 'M_face', 'tower'], dur: 3, speed: 1.3,
+  {id: 's14', refs: ['M_sheet', 'M_face', 'tower'], dur: 3, flip: 1, speed: 1.3,
     key: `Medium shot at night: ${'$M'} whirls his long string of prayer beads in front of him; the beads glow warm gold and spin into a bright golden ring; glossy black ink blades flying at him smash against the ring and burst into clouds of black ink mist and droplets. ${'$FX'}`,
     move: `The prayer beads spin into a blazing golden ring, black ink blades slam into it one after another and explode into black ink mist that sprays outward. The monk stands firm. Camera holds.`},
   {id: 'n08', refs: ['S_face', 'S_sheet', 'tower'], dur: 1.5,
@@ -113,7 +114,7 @@ export const SHOTS = [
   {id: 's16', refs: ['S_sheet', 'tower'], dur: 4, speed: 1.25,
     key: `Wide shot at night down the steep tiled slope of the bell tower roof: ${'$S'} slides down the tiles toward the edge, tiles breaking loose and tumbling into the dark void; he stabs his sword into the roof to stop himself at the very edge, sparks at the blade, the city far below in mist.`,
     move: `The swordsman slides down the steep roof, loose tiles tumble over the edge and fall into the dark, he drives his sword into the tiles and screeches to a halt at the very edge with a burst of sparks.`},
-  {id: 's17', refs: ['S_face', 'S_sheet'], dur: 4,
+  {id: 's17', refs: ['S_face', 'S_sheet'], dur: 4.5,
     key: `Close-up at night: ${'$S'} crouched at the edge of the roof, a thin line of blood at the corner of his mouth, ponytail blown across his face, cool moonlight rim, the city lanterns a soft blur far below. He looks up with a faint, defiant smile.`,
     move: `He wipes the blood from the corner of his mouth with the back of his hand, looks up and says a short defiant sentence with a faint smile, his lips moving as he speaks. Wind blows his hair. Very slow push in.`, seed: 2},
   {id: 'n09', refs: ['S_sheet', 'M_sheet', 'city'], dur: 3.5,
@@ -136,7 +137,7 @@ export const SHOTS = [
   {id: 's22', refs: ['bridge', 'S_sheet', 'M_sheet'], dur: 3, speed: 1.3,
     key: `Medium-wide shot at night on the bridge: ${'$S'} flicks his sword forward and all the frozen raindrops around him stretch into thin glittering needles of water, a horizontal storm streaking toward ${'$M'}. ${'$FX'}`,
     move: `The suspended raindrops stretch into glittering water needles and shoot horizontally toward the monk in a dense storm. The swordsman's sword is extended. Camera pushes in fast.`},
-  {id: 's23', refs: ['bridge', 'M_sheet', 'M_face'], dur: 3.5, ramp: [[0.5, 1.3], [1.4, 0.6], [9, 1.3]],
+  {id: 's23', refs: ['bridge', 'M_sheet', 'M_face'], dur: 3.5, flip: 1, ramp: [[0.5, 1.3], [1.4, 0.6], [9, 1.3]],
     key: `Medium shot at night on the bridge: ${'$M'} presses his palms together and then thrusts both palms forward; a translucent golden ripple in the shape of a bell expands from him; the flying water needles shatter against it into bright mist. ${'$FX'}`,
     move: `The monk thrusts both palms forward, a translucent golden bell-shaped ripple expands outward and the incoming water needles shatter into a burst of glowing mist. His kasaya flaps.`},
   {id: 'n10', refs: ['S_sheet', 'bridge'], dur: 1.7, speed: 1.4,
@@ -154,7 +155,7 @@ export const SHOTS = [
   {id: 'n13', refs: ['S_sheet', 'M_sheet', 'bridge'], dur: 1.4, speed: 1.3,
     key: `Medium close shot at night in the rain: ${'$S'} on the LEFT flicks his sword upward in a fast rising cut toward the string of prayer beads around the neck of ${'$M'} on the RIGHT; the monk leans back, the blade tip passing a hand's width in front of his chest without touching his skin.`,
     move: `The sword tip flicks upward in front of the monk's chest, the monk leans back, the tip catches the cord of the prayer beads. Very fast. Camera static.`},
-  {id: 's25', refs: ['M_sheet', 'S_sheet'], dur: 3, speed: 0.8,
+  {id: 's25', refs: ['M_sheet', 'S_sheet'], dur: 3, flip: 1, speed: 0.8,
     key: `Extreme close-up at night in the rain: the tip of the steel sword slices through the cord of the monk's string of dark wooden prayer beads at his chest; the beads burst apart and scatter into the air one by one. ${'$FX'}`,
     move: `The sword tip flicks the cord and pulls straight back away from the monk, the blade never touches his body. The cord snaps, the whole string falls away from his neck and the dark wooden prayer beads burst apart, scattering through the air in extreme slow motion with raindrops. Camera static.`, seed: 9},
   {id: 's26', refs: ['bridge'], dur: 5,
@@ -241,9 +242,9 @@ export const SHOTS = [
 export const LINES = [
   {id: 'e01', who: 'M', shot: 's03', at: 1.2, text: '三十年了。這口鐘，一次也沒有響過。', style: '低沉、緩慢、自言自語，像在跟老朋友說話，帶一點疲憊'},
   {id: 'e02', who: 'S', shot: 'n02', at: 0.8, text: '大師，借你的鐘一用。', style: '面對面、從容、帶點笑意和傲氣，聲音清亮'},
-  {id: 'e03', who: 'M', shot: 'n03', at: 0.4, text: '鐘在，城在。', style: '平靜、低沉、一字一頓，不容商量'},
+  {id: 'e03', who: 'M', shot: 'n03', at: 0.1, text: '鐘在，城在。', style: '平靜、低沉、一字一頓，不容商量'},
   {id: 'e04', who: 'M', shot: 's16', at: 1.0, text: '回去吧。這口鐘，不是你能碰的。', style: '沉穩、居高臨下但不兇，像長輩勸人'},
-  {id: 'e05', who: 'S', shot: 's17', at: 1.8, text: '那就讓我看看，它值不值得。', style: '喘著氣、嘴角帶血地笑，不服輸'},
+  {id: 'e05', who: 'S', shot: 's17', at: 0.5, tempo: 1.1, text: '那就讓我看看，它值不值得。', style: '喘著氣、嘴角帶血地笑，不服輸'},
   {id: 'e06', who: 'S', shot: 's21', at: 0.6, text: '你守了三十年，卻從來不敢敲。', style: '低聲、近距離、帶挑釁，雨聲中說'},
   {id: 'e07', who: 'M', shot: 's23', at: 0.2, text: '敲一次，我這條命就給它了！', style: '運足內力、從丹田爆發的怒吼，聲如洪鐘、震耳欲聾，三十年壓抑的情緒一次炸開，最後一個字拉長'},
   {id: 'e08', who: 'S', shot: 's27', at: 1.0, text: '……他們來了。', style: '很輕、凝重，看向天空'},
@@ -251,8 +252,8 @@ export const LINES = [
   {id: 'e10', who: 'S', shot: 's35', at: 1.0, text: '撐住——！', style: '在狂風暴雨中拚命嘶吼，焦急、聲嘶力竭，邊奔跑邊喊，尾音拉長破音'},
   {id: 'e11', who: 'S', shot: 's37', at: 2.0, text: '這一劍，替你敲！', style: '站在屋頂對天怒吼，用盡全力、豪氣萬丈、熱血沸騰，每個字都像劈出去的劍'},
   {id: 'e12', who: 'M', shot: 's44', at: 2.0, text: '這口鐘……裂了。', style: '虛弱、喘息、帶一點苦笑'},
-  {id: 'e13', who: 'S', shot: 's45', at: 1.4, text: '人沒裂就好。', style: '累極了但輕鬆地笑，像朋友開玩笑'},
-  {id: 'e14', who: 'M', shot: 's46', at: 1.2, text: '阿彌陀佛。後會有期。', style: '溫和、敬重、沉穩，帶笑意'},
+  {id: 'e13', who: 'S', shot: 's45', at: 1.2, text: '人沒裂就好。', style: '累極了但輕鬆地笑，像朋友開玩笑'},
+  {id: 'e14', who: 'M', shot: 's46', at: 1.0, text: '阿彌陀佛。後會有期。', style: '溫和、敬重、沉穩，帶笑意'},
 ];
 
 /* white impact flashes, seconds into the finished shot (edit.mjs draws them, sfx.mjs hits on them) */
@@ -278,8 +279,10 @@ export function outAt(s, tsrc) {
 /* source seconds a shot needs for its edit length */
 export const srcLen = (s) => srcAt(s, s.dur);
 /* start of every shot on the edit timeline; an incoming dissolve overlaps the end of the shot before it */
+/* a length rounded to whole frames at 24 fps: the edit cuts on frames, so the timeline counts in frames too or sound drifts */
+export const frames = (sec) => Math.round(sec * 24) / 24;
 export function timeline() {
   const T = {}; let t = HEAD;
-  for (const s of SHOTS) { t -= s.tr?.d || 0; T[s.id] = t; t += s.dur; }
+  for (const s of SHOTS) { t -= frames(s.tr?.d || 0); T[s.id] = t; t += frames(s.dur); }
   return {T, end: t};
 }

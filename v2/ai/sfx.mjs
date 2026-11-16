@@ -103,7 +103,7 @@ hit('chargeDn', g('s08'), {gain: .35, rate: .6}); hit('heavy', g('s08', .05), {g
 hit('impBoom', g('s08', FLASH.s08), {gain: .9}); hit('boom2', g('s08', FLASH.s08), {gain: .6});
 /* s09: he cuts the palm apart */
 hit('blade', g('s09', .3), {gain: .7}); hit('fast', g('s09', .2), {gain: .4});
-hit('impact', g('s09', FLASH.s09), {gain: .8}); hit('debris', g('s09', FLASH.s09 + .05), {gain: .4, rate: 1.3}); put(g('s09', .6), 2, crackle(9, {rate: 40}), {gain: .3});
+hit('impact', g('s09', FLASH.s09), {gain: .8}); hit('iron0', g('s09', FLASH.s09), {gain: .7}); hit('debris', g('s09', FLASH.s09 + .05), {gain: .4, rate: 1.3}); put(g('s09', .6), 2, crackle(9, {rate: 40}), {gain: .3});
 /* n04: the dash and thrust */
 hit('fast', g('n04'), {gain: .6}); hit('cloth0', g('n04', .3), {gain: .4});
 /* s10: blade point on the palm, the slide, two more meetings */
@@ -131,10 +131,10 @@ for (let k = 0; k < 9; k++) put(g('s14', .3 + k * .3), .5, knock(400 + R() * 300
 hit('wTex', g('s14', .4), {gain: .3});
 hit('fast', g('n08'), {gain: .3});
 /* s15: the palm lands on him and he flies */
-hit('cine', g('s15', FLASH.s15 - .03), {gain: .9}); hit('punch', g('s15', FLASH.s15), {gain: .8}); hit('boom3', g('s15', FLASH.s15), {gain: .6});
+hit('cine', g('s15', FLASH.s15 - .12), {gain: .9}); hit('punch', g('s15', FLASH.s15 - .02), {gain: .8}); hit('boom3', g('s15', FLASH.s15 - .09), {gain: .6});   // these files open with a few frames of air
 hit('heavy', g('s15', 1.1), {gain: .45}); hit('cloth1', g('s15', 1.3), {gain: .4});
 /* s16: he skids over the tiles, his blade scraping sparks */
-hit('scrape', gs('s16', .4), {gain: .55}); put(gs('s16', .4), 1.6, crackle(16, {rate: 120}), {gain: .35});
+hit('scrape', gs('s16', .4), {gain: .35}); put(gs('s16', .4), 1.6, crackle(16, {rate: 120}), {gain: .35});
 for (let k = 0; k < 10; k++) put(gs('s16', .2 + R() * 1.6), .3, knock(900 + R() * 900, {decay: .04, seed: 50 + k}), {gain: .35, pan: rp(.5)});
 hit('ric2', gs('s16', 4.0), {gain: .4});
 
@@ -179,7 +179,7 @@ for (let k = 0; k < 6; k++) hit(`iron${k % 5}`, g('s33', .4 + k * .6), {gain: .0
 for (let k = 0; k < 5; k++) put(g('s34', .2 + k * .85), 1, boom({f1: 60, f2: 40, len: .25, seed: 340 + k}), {gain: .45});   // heartbeat
 hit('rattle', g('s34'), {gain: .3, max: 4.2});
 /* s35: the dome cracks */
-hit('riseGroan', g('s35'), {gain: .4, max: 1.5}); hit('boom4', g('s35', FLASH.s35), {gain: .8}); hit('scrape', g('s35', FLASH.s35), {gain: .4, rate: .5});
+hit('riseGroan', g('s35'), {gain: .4, max: 1.5}); hit('boom4', g('s35', FLASH.s35 - .17), {gain: .8}); hit('iron2', g('s35', FLASH.s35), {gain: .5, rate: .7}); hit('scrape', g('s35', FLASH.s35), {gain: .4, rate: .5});
 put(g('s35', FLASH.s35), 4, thunder(35, {len: 2}), {gain: .45});
 for (const dt of [.3, 1.4, 2.5, 3.6]) { hit('airy', g('s36', dt), {gain: .35, max: 1}); hit('woodDrop', g('s36', dt + .5), {gain: .25}); }
 /* s37 → n14 → s38: the arrows stop, turn and go cold */
