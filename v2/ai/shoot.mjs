@@ -9,7 +9,7 @@ import {fileURLToPath} from 'node:url';
 import {SHOTS} from './film.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const OUT = process.env.AI_OUT || 'D:/wanjian-fx/v2-out/ai', OTHER = process.env.OTHER_COMFY ?? 'http://127.0.0.1:8188';
+const OUT = process.env.AI_OUT || 'D:/wanjian-fx/v2-out/ai', COMFY = process.env.COMFY || 'http://127.0.0.1:8189', OTHER = process.env.OTHER_COMFY ?? 'http://127.0.0.1:8188';
 const a = process.argv.slice(2), redo = a.includes('--redo');
 const opt = (k, d) => a.includes(`--${k}`) ? Number(a[a.indexOf(`--${k}`) + 1]) : d;
 const only = a.filter((x, i) => !x.startsWith('--') && !a[i - 1]?.startsWith('--'));
@@ -22,6 +22,10 @@ for (const s of list) {
   const key = join(OUT, 'key', `${s.id}.jpg`);
   if (!existsSync(key)) { console.log('no keyframe, skip', s.id); continue; }
   const frames = Math.min(81, Math.ceil(((s.dur * (s.speed || 1)) + 0.5) * 16 / 4) * 4 + 1);
+  /* our ComfyUI must be up: give it a few minutes (it may be restarting), then stop rather than fail every shot in turn */
+  let up = false;
+  for (let k = 0; k < 18 && !up; k++) { try { up = (await fetch(`${COMFY}/queue`)).ok; } catch { await new Promise((r) => setTimeout(r, 10000)); } }
+  if (!up) { console.error(`ComfyUI at ${COMFY} is not running, stopping`); process.exit(1); }
   try {
     const q = await (await fetch(`${OTHER}/queue`)).json();
     if (!q.queue_running.length && !q.queue_pending.length) await fetch(`${OTHER}/free`, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: '{"unload_models":true,"free_memory":true}'});
