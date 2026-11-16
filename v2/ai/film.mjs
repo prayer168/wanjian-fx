@@ -8,6 +8,7 @@
 //   ramp: speed ramp instead of one speed — [[source seconds up to, speed], ...] e.g. fast into an impact, slow on it, fast out
 //   tr:   how this shot comes in — {type: 'dissolve', d: 1} (default is a straight cut)
 //   ext:  the clip is extended once with a second Wan pass that starts from its last frame (extmove = that pass's prompt)
+//   rev:  the first rev seconds of the clip play backwards, then forwards (a wind-up the clip opens past)
 //   flip: the clip is mirrored in the edit (keeps the swordsman left / monk right when Wan put them the other way round)
 //   Fight rules: the swordsman is always screen LEFT and the monk screen RIGHT; the monk meets the blade only with his palm on
 //   the FLAT of the blade, at the swordsman's wrist, or with his bronze-hard forearm — a blade never passes into a body.
@@ -46,7 +47,8 @@ export const SHOTS = [
   {id: 's02', refs: ['tower', 'M'], dur: 4, speed: 0.65, tr: {type: 'dissolve', d: 1},   // slowed so the cut ends before Wan brings a face in at 3 s
     key: `Extreme close-up of the surface of the enormous ancient bronze bell from the reference image: green-black patina, worn lotus reliefs, centuries of dust. A weathered, scarred, strong hand of the monk rests flat on the bronze, a few dark wooden prayer beads wrapped around the wrist. Warm oil-lamp light rakes across the metal, cool moonlight on the edge.`,
     move: `The weathered hand slides slowly across the cold bronze surface of the bell, fine dust drifts down in the lamp light. Locked-off camera, the framing stays on the hand and the bronze only, no face or other person enters the frame. Quiet, solemn.`, seed: 2},
-  {id: 's03', refs: ['tower', 'M_face', 'M_sheet'], dur: 5,
+  {id: 's03', refs: ['tower', 'M_face', 'M_sheet'], dur: 8, ext: 1,
+    extmove: `The monk sits still in meditation and looks ahead, calm and heavy, speaking a few slow words to himself, his lips moving. The oil lamp flames flicker, his kasaya stirs in the wind. Very slow push in toward his face.`,
     key: `Medium shot, ${'$M'} sits cross-legged in meditation on a straw mat in the open top floor of the bell tower, eyes closed, hands resting on his knees, the enormous bronze bell hanging behind him. Through the open side behind him, far below and out of focus, the thousands of enemy torch fires on the plain. Warm lamp light on his face, cool moonlight rim on his bare shoulder.`,
     move: `The monk slowly opens his eyes and looks ahead, calm and heavy. The oil lamp flames bend in a sudden gust of wind, his kasaya stirs. Very slow push in toward his face.`},
   {id: 's04', refs: ['S_sheet', 'city'], dur: 3.5, speed: 1.2,
@@ -66,12 +68,18 @@ export const SHOTS = [
   {id: 'n01', refs: ['S_sheet', 'M_sheet', 'tower'], dur: 2.5, speed: 1.2,
     key: `Medium-wide shot at night inside the open top floor of the bell tower from the reference image: ${'$S'} lands in a low crouch on the wooden floor just inside the railing on the LEFT side of the frame, one hand on the floor, sword held back, dust and a few dead leaves blasting out from the impact, robes still settling; on the RIGHT, beside the enormous bronze bell, ${'$M'} stands calmly facing him.`,
     move: `The swordsman lands hard in a crouch, dust bursts out across the floorboards and his robes settle around him; the monk on the right does not move. Camera static, a slight shake on the landing.`},
-  {id: 'n02', refs: ['S_sheet', 'S_face', 'M_sheet', 'tower'], dur: 4,
+  {id: 'n02', refs: ['S_sheet', 'S_face', 'M_sheet', 'tower'], dur: 4.2,
     key: `Medium two-shot at night in the open top floor of the bell tower: ${'$S'} on the LEFT rises to his full height, sword held low at his side pointing at the floor, a faint confident smile; ${'$M'} on the RIGHT faces him, hands loosely together in front of him; the enormous bronze bell hangs behind and between them. Oil lamps flicker, wind blows through the open sides.`,
     move: `The swordsman straightens up and says a short sentence to the monk with a faint smile, his lips moving as he speaks; the monk watches him without moving. Lamp flames bend in the wind. Very slow push in.`},
-  {id: 'n03', refs: ['M_face', 'M_sheet', 'tower'], dur: 3.1,
+  {id: 'n03', refs: ['M_face', 'M_sheet', 'tower'], dur: 4.1, speed: 0.85,
     key: `Close-up at night of ${'$M'} in the top floor of the bell tower, warm lamp light on one side of his face, cool moonlight on the other, the bronze bell out of focus behind him; stern and calm, looking toward the left of frame.`,
     move: `The monk says a few short words slowly and firmly, his lips moving as he speaks, then his jaw sets. Static camera.`},
+  {id: 'n03b', refs: ['S_face', 'S_sheet', 'tower'], dur: 5.3, speed: 0.95,
+    key: `Close-up at night of ${'$S'} in the top floor of the bell tower, the warm lamp light on one side of his face, the bronze bell soft and out of focus behind him; he stands upright, sword held low at his side, his smile has gone, his eyes are serious and steady, looking toward the right of frame. Wind moves loose strands of his hair.`,
+    move: `The swordsman's smile fades and he says two short serious sentences, his lips moving as he speaks, his eyes fixed on the monk off to the right; then he tightens his grip on the sword hilt. Static camera, very slow push in.`},
+  {id: 'n03c', refs: ['M_sheet', 'M_face', 'tower'], dur: 5.3, speed: 0.95, flip: 1,
+    key: `Medium shot at night in the open top floor of the bell tower: ${'$M'} sinks into a low, wide horse stance in front of the enormous bronze bell, his right palm drawn back at his hip, a faint golden glow gathering in that palm like embers, dust starting to lift off the floorboards around his feet, his kasaya stirring. He faces the left of frame.`,
+    move: `The monk says a few slow words, then sinks lower into his stance and draws his right palm back; a golden glow builds in his palm, brighter and brighter, dust and dead leaves lift and swirl around his feet, his kasaya lifts in a rising wind, the lamp flames lean away from him. Camera slowly pushes in.`},
   {id: 's08', refs: ['tower', 'M_sheet'], dur: 3, ramp: [[0.6, 1.5], [1.4, 0.6], [9, 1.3]],
     key: `Medium-wide low angle at night: ${'$M'} on the outer balcony of the bell tower's top floor pushes his right palm forward; a translucent golden palm print the size of a door bursts out from his palm into the night air, made of glowing golden haze and embers, lighting his face, chest and the timber eaves gold. ${'$FX'}`,
     move: `The monk thrusts his palm forward and the huge translucent golden palm print surges out toward the camera, embers and dust blasting outward, his kasaya snapping back. Camera holds, slight shake.`},
@@ -111,10 +119,12 @@ export const SHOTS = [
   {id: 's15', refs: ['S_sheet', 'M_sheet'], dur: 2.8, ramp: [[0.5, 1.4], [1.3, 0.45], [9, 1.5]],
     key: `Medium shot at night on the tiled roof: ${'$M'} lands a heavy open-palm strike on the chest of ${'$S'}; at the point of impact a ring of shockwave blasts dust, rain-damp tile chips and air outward; the swordsman's robes ripple violently backward, his face in pain. ${'$FX'}`,
     move: `The palm strike lands, the shockwave ring blasts outward, and the swordsman is thrown backward off his feet out of the frame, robes and hair whipping forward, his face twisted in pain. The monk stays rooted in his stance with a stern, grim face, his palm still extended. Nobody smiles. Slow motion turning into speed. Camera shake.`, seed: 6},
-  {id: 's16', refs: ['S_sheet', 'tower'], dur: 4, speed: 1.25,
+  {id: 's16', refs: ['S_sheet', 'tower'], dur: 6.3, speed: 1.25, ext: 1,
+    extmove: `The swordsman crouches at the very edge of the roof, gripping his sword stuck in the tiles, breathing hard, and slowly looks up toward the top of the roof. Wind and mist, the city far below. Camera holds.`,
     key: `Wide shot at night down the steep tiled slope of the bell tower roof: ${'$S'} slides down the tiles toward the edge, tiles breaking loose and tumbling into the dark void; he stabs his sword into the roof to stop himself at the very edge, sparks at the blade, the city far below in mist.`,
     move: `The swordsman slides down the steep roof, loose tiles tumble over the edge and fall into the dark, he drives his sword into the tiles and screeches to a halt at the very edge with a burst of sparks.`},
-  {id: 's17', refs: ['S_face', 'S_sheet'], dur: 4.5,
+  {id: 's17', refs: ['S_face', 'S_sheet'], dur: 6, ext: 1,
+    extmove: `He keeps his eyes fixed up ahead with a faint defiant smile and slowly rises, pulling his sword free, wind blowing his hair across his face. Very slow push in.`,
     key: `Close-up at night: ${'$S'} crouched at the edge of the roof, a thin line of blood at the corner of his mouth, ponytail blown across his face, cool moonlight rim, the city lanterns a soft blur far below. He looks up with a faint, defiant smile.`,
     move: `He wipes the blood from the corner of his mouth with the back of his hand, looks up and says a short defiant sentence with a faint smile, his lips moving as he speaks. Wind blows his hair. Very slow push in.`, seed: 2},
   {id: 'n09', refs: ['S_sheet', 'M_sheet', 'city'], dur: 3.5,
@@ -131,13 +141,14 @@ export const SHOTS = [
   {id: 's20', refs: ['bridge', 'S_sheet', 'M_sheet'], dur: 5.5,
     key: `Wide shot at night: the whole rainstorm over the stone bridge is frozen in mid-air — millions of suspended raindrops glittering like crystal in the red lantern light, filling the frame. ${'$M'} stands on the top of the arch; ${'$S'} walks slowly up the bridge toward him through the frozen rain, and every drop he touches splits cleanly in two. ${'$FX'}`,
     move: `Time is frozen: the raindrops hang motionless in the air while the swordsman walks slowly forward through them, splitting the drops in his path. Very slow dolly forward through the suspended rain.`},
-  {id: 's21', refs: ['M_face', 'M_sheet'], dur: 4, still: true,   // Wan keeps the rain falling; frozen time is the keyframe itself, pushed in
-    key: `Extreme close-up of ${'$M'}'s face at night, soaked, rain frozen in mid-air in front of his eyes — a single drop hangs an inch from his eye, reflecting a red lantern. Utterly calm.`,
+  {id: 's21', refs: ['M_face', 'M_sheet'], dur: 5.7, still: true,   // Wan keeps the rain falling; frozen time is the keyframe itself, pushed in
+    key: `Close-up in exact side profile at night: ${'$M'} seen from the side, facing the left of frame, utterly calm, eyes open. Time has stopped: the rain hangs frozen in mid-air all around his head as thousands of motionless round glass-clear droplets, sharp and glittering in the red lantern light, at every distance — some between the camera and him, many in the clear air just in front of his nose and eyes, with an obvious gap of empty air between every drop and his skin. Not a single drop touches him; no streaks, nothing is falling, the drops are perfect spheres hanging still. Dark rainy street with red lanterns softly blurred behind.`,
     move: `Time has stopped: every raindrop hangs perfectly motionless in the air, no rain falls at all. The monk slowly closes and opens his eyes; the single frozen raindrop in front of his eye trembles slightly but stays in place. Very slow push in.`, seed: 7},
   {id: 's22', refs: ['bridge', 'S_sheet', 'M_sheet'], dur: 3, speed: 1.3,
     key: `Medium-wide shot at night on the bridge: ${'$S'} flicks his sword forward and all the frozen raindrops around him stretch into thin glittering needles of water, a horizontal storm streaking toward ${'$M'}. ${'$FX'}`,
     move: `The suspended raindrops stretch into glittering water needles and shoot horizontally toward the monk in a dense storm. The swordsman's sword is extended. Camera pushes in fast.`},
-  {id: 's23', refs: ['bridge', 'M_sheet', 'M_face'], dur: 3.5, flip: 1, ramp: [[0.5, 1.3], [1.4, 0.6], [9, 1.3]],
+  {id: 's23', refs: ['bridge', 'M_sheet', 'M_face'], dur: 6.1, flip: 1, ramp: [[0.5, 1.3], [1.4, 0.6], [9, 1.3]], ext: 1,
+    extmove: `The monk holds his palms forward and roars, breathing hard, the golden ripple slowly fading into glowing mist and rain around him, his kasaya dripping. Slow push in.`,
     key: `Medium shot at night on the bridge: ${'$M'} presses his palms together and then thrusts both palms forward; a translucent golden ripple in the shape of a bell expands from him; the flying water needles shatter against it into bright mist. ${'$FX'}`,
     move: `The monk thrusts both palms forward, a translucent golden bell-shaped ripple expands outward and the incoming water needles shatter into a burst of glowing mist. His kasaya flaps.`},
   {id: 'n10', refs: ['S_sheet', 'bridge'], dur: 1.7, speed: 1.4,
@@ -168,14 +179,18 @@ export const SHOTS = [
     key: `Wide shot across the dark plain at night in light rain: thousands of armoured archers in rows, lit by torches, raise their longbows toward the sky; the tips of their arrows are burning. War banners hang wet. Far away across the river, the cliff city and its bell tower.`,
     move: `Rows of archers raise their bows toward the sky in a wave, burning arrow tips catching fire one after another. Torches flicker. Slow lateral tracking shot.`},
 
+  {id: 'n15', refs: ['city'], dur: 2.6, ramp: [[1.3, 2], [2.4, 1], [9, 1.3]],   // the strings let go at 1.5 s in the clip (0.85 s in the shot)
+    key: `Medium-wide side-on shot at night in light rain on the plain: a long line of armoured archers at full draw aiming high into the sky, burning arrows nocked, torches behind them, the bowstrings drawn back to their cheeks; war banners behind. Real faces, wet armour.`,
+    move: `All the archers release at once: the bowstrings snap forward, the flaming arrows leap off the bows and shoot steeply up into the sky out of the top of the frame leaving streaks of fire and sparks, the bows spring back. Camera static, a slight shake.`},
+
   /* ── 三：萬箭 ─────────────────────────────────────────── */
   {id: 's29', refs: ['city'], dur: 7.5, ext: 1,
     extmove: `More and more flaming arrows streak down out of the sky toward the cliff city like a meteor shower, the first ones hitting the roofs in bursts of fire and sparks. The camera slowly drifts closer to the bell tower.`,
     key: `Extreme wide shot at night: the sky above the river gorge is filled with ten thousand flaming arrows arcing from the plain toward the cliff city like a burning meteor shower, the trails lighting the low clouds orange; the city and the bell tower small on the cliff. ${'$FX'}`,
     move: `Ten thousand flaming arrows arc slowly across the sky toward the cliff city, burning trails streaking, the clouds glow orange. Slow tilt up.`},
-  {id: 's30', refs: ['tower', 'M_sheet', 'M_face'], dur: 4,
-    key: `Medium shot inside the top floor of the bell tower at night, orange glow from outside: ${'$M'}, soaked, his prayer beads gone, grips the ropes of the heavy wooden striking log with both hands and pulls it far back, every muscle straining, the enormous bronze bell in front of him.`,
-    move: `The monk hauls the heavy striking log back with all his strength, his muscles straining, then swings it forward toward the bell. Camera holds low.`},
+  {id: 's30', refs: ['tower', 'M_sheet', 'M_face'], dur: 2.45, rev: 1.45, ramp: [[1.4, 1], [9, 1.4]],   // opens mid-swing: reversed, that is the wind-up; cut as the log meets the bronze (s31 shows the hit)
+    key: `Wide side-on shot inside the top floor of the bell tower at night, orange glow from outside: the enormous bronze bell hangs on the LEFT of frame; a thick horizontal wooden striking log hangs from two ropes on the RIGHT, its axis pointing straight at the side of the bell, its front end a short distance from the bronze. ${'$M'}, soaked, his prayer beads gone, stands at the far RIGHT end of the log facing left toward the bell, both hands gripping the back end of the log, and has pulled it far back toward himself, every muscle straining.`,
+    move: `The monk drives the heavy striking log forward to the left in a straight line along its own length, swinging it on its ropes, and its front end slams into the side of the bronze bell; the bell shudders. Camera static, side on.`},
   {id: 's31', refs: ['tower'], dur: 3.5,
     key: `Extreme close-up at night, no person anywhere in the frame, only the bell and the log: the heavy wooden striking log hits the enormous ancient bronze bell; from the point of impact a ring of golden light ripples across the bronze surface, dust and old flakes of patina burst off the metal. ${'$FX'}`,
     move: `The log strikes the bell, the bronze shudders, a ring of golden light ripples outward across the surface and dust bursts off the metal. No person enters the frame. Camera shakes once.`},
@@ -192,10 +207,11 @@ export const SHOTS = [
   {id: 's35', refs: ['city'], dur: 4,
     key: `Wide shot from below the golden dome at night: a long jagged crack runs across the translucent golden dome of light over the city; burning arrows start to punch through the crack and fall toward the roofs. ${'$FX'}`,
     move: `The crack spreads across the golden dome with flashes of light, and burning arrows break through and fall toward the roofs below. Camera tilts down slowly.`},
-  {id: 's36', refs: ['tower', 'S_sheet'], dur: 4.5, speed: 1.2,
+  {id: 's36', refs: ['tower', 'S_sheet'], dur: 7, speed: 1.2, ext: 1,
+    extmove: `The swordsman keeps leaping upward from eave to eave toward the top roof of the bell tower, robes streaming, burning arrows streak past him and burst on the tiles. Camera keeps craning up with him.`,
     key: `Wide shot at night in the rain beside the dark wooden seven-storey bell tower from the reference image: ${'$S'} runs up the outside of the tower, leaping from one flared eave to the next, robes streaming, burning arrows falling around him. High in the sky above, the gigantic translucent golden bell-shaped dome of light that covers the whole city, hundreds of metres wide, glows faintly and ripples where arrows strike it. The tower roof itself is ordinary dark grey tile.`,
     move: `The swordsman leaps upward from eave to eave up the side of the bell tower, his robes streaming, burning arrows streak past him. Camera cranes up with him.`},
-  {id: 's37', refs: ['tower', 'S_sheet', 'S_face'], dur: 4.5,
+  {id: 's37', refs: ['tower', 'S_sheet', 'S_face'], dur: 5,
     key: `Low angle at night: ${'$S'} stands on the topmost ridge of the dark grey-tiled roof of the bell tower from the reference image, sword raised straight up at the sky; above him thousands of flaming arrows hang frozen in mid-air, stopped dead, their flames still flickering. Far beyond the arrows, high in the sky, the faint curved surface of the gigantic cracked golden dome of light over the whole city. ${'$FX'}`,
     move: `The swordsman raises his sword and the falling flaming arrows above him slow down and stop, hanging motionless in the sky, flames still flickering. His robes blow. Slow push in from below.`},
   {id: 'n14', refs: ['S_sheet', 'city'], dur: 3.2,
@@ -223,13 +239,14 @@ export const SHOTS = [
     move: `The golden dome dissolves into drifting golden motes that float down over the roofs like fireflies, the clouds slowly part to reveal the moon. Slow crane down.`},
 
   /* ── 尾：鐘鳴 ─────────────────────────────────────────── */
-  {id: 's44', refs: ['tower', 'S_sheet', 'M_sheet'], dur: 5.5, tr: {type: 'dissolve', d: 1.6},
+  {id: 's44', refs: ['tower', 'S_sheet', 'M_sheet'], dur: 6.4, tr: {type: 'dissolve', d: 1.6}, ext: 1,
+    extmove: `The warm sunlight keeps creeping across the two exhausted men; the monk lifts his eyes to the crack in the bell and smiles faintly, the swordsman laughs quietly. Static camera, very slow push in.`,
     key: `Dawn, the top floor of the bell tower: the enormous bronze bell now has a long jagged crack down its side. ${'$M'} sits exhausted on the floor leaning against the bell; ${'$S'} sits beside him, back against a column, both soaked, bruised and dirty. Soft cold blue dawn light with the first warm sunlight entering from the side, mist outside.`,
     move: `The first warm rays of sunlight slowly sweep across the floor and onto their tired faces, mist drifts outside, the monk lets out a long breath. Static camera, very slow push in.`},
-  {id: 's45', refs: ['tower', 'S_sheet', 'M_sheet'], dur: 4,
+  {id: 's45', refs: ['tower', 'S_sheet', 'M_sheet'], dur: 4.9, speed: 0.9,
     key: `Close-up at dawn on the top floor of the bell tower from the reference image, the timber columns, the railing and the cracked bronze bell soft and out of focus behind: the swordsman's hand with its worn leather bracer opens palm up toward the monk; in his palm lies a single dark wooden prayer bead, wet, catching the warm sunlight.`,
     move: `The swordsman's hand slowly offers the single prayer bead; a heavy, weathered, sun-tanned hand with plain bare skin (no tattoos, no markings) and an ochre robe sleeve reaches in from the top of the frame and gently takes it. No face appears, only the two hands and the soft blurred background. Warm sunlight. Static camera.`, seed: 4},
-  {id: 's46', refs: ['tower', 'S_sheet', 'M_sheet'], dur: 4.5,
+  {id: 's46', refs: ['tower', 'S_sheet', 'M_sheet'], dur: 5.4, speed: 0.92,
     key: `Medium-wide shot at dawn on the top floor of the bell tower: ${'$S'} and ${'$M'} stand facing each other in front of the cracked bronze bell and salute each other — the swordsman with a fist-and-palm salute, the monk with one hand raised in a Buddhist salute. Warm low sun behind them, mist and the river gorge beyond.`,
     move: `The two men salute each other with quiet respect and bow slightly, warm sunlight flaring behind them, mist drifting beyond. Slow arc around them.`},
   {id: 's47', refs: ['city', 'tower'], dur: 10, ext: 1, tr: {type: 'dissolve', d: 1},
@@ -242,18 +259,20 @@ export const SHOTS = [
 export const LINES = [
   {id: 'e01', who: 'M', shot: 's03', at: 1.2, text: '三十年了。這口鐘，一次也沒有響過。', style: '低沉、緩慢、自言自語，像在跟老朋友說話，帶一點疲憊'},
   {id: 'e02', who: 'S', shot: 'n02', at: 0.8, text: '大師，借你的鐘一用。', style: '面對面、從容、帶點笑意和傲氣，聲音清亮'},
-  {id: 'e03', who: 'M', shot: 'n03', at: 0.1, text: '鐘在，城在。', style: '平靜、低沉、一字一頓，不容商量'},
-  {id: 'e04', who: 'M', shot: 's16', at: 1.0, text: '回去吧。這口鐘，不是你能碰的。', style: '沉穩、居高臨下但不兇，像長輩勸人'},
+  {id: 'e03', who: 'M', shot: 'n03', at: 0.3, text: '鐘在，城在。', style: '平靜、低沉、一字一頓，不容商量'},
+  {id: 'e03b', who: 'S', shot: 'n03b', at: 0.3, text: '十萬大軍，天亮就到。這口鐘，今晚得響。', style: '收起笑意、低沉認真、語速正常偏快，乾脆俐落，像在警告'},
+  {id: 'e03c', who: 'M', shot: 'n03c', at: 0.2, text: '想敲它，先過我這一關。', style: '沉聲、緩慢、氣沉丹田，帶著威壓，不怒自威'},
+  {id: 'e04', who: 'M', shot: 's16', at: 0.6, text: '回去吧。這口鐘，不是你能碰的。', style: '沉穩、居高臨下但不兇，像長輩勸人'},
   {id: 'e05', who: 'S', shot: 's17', at: 0.5, tempo: 1.1, text: '那就讓我看看，它值不值得。', style: '喘著氣、嘴角帶血地笑，不服輸'},
   {id: 'e06', who: 'S', shot: 's21', at: 0.6, text: '你守了三十年，卻從來不敢敲。', style: '低聲、近距離、帶挑釁，雨聲中說'},
   {id: 'e07', who: 'M', shot: 's23', at: 0.2, text: '敲一次，我這條命就給它了！', style: '運足內力、從丹田爆發的怒吼，聲如洪鐘、震耳欲聾，三十年壓抑的情緒一次炸開，最後一個字拉長'},
   {id: 'e08', who: 'S', shot: 's27', at: 1.0, text: '……他們來了。', style: '很輕、凝重，看向天空'},
   {id: 'e09', who: 'M', shot: 's30', at: 0.1, text: '退後！', style: '用盡全身力氣的暴喝，短促、厚重、震撼，像獅子吼'},
   {id: 'e10', who: 'S', shot: 's35', at: 1.0, text: '撐住——！', style: '在狂風暴雨中拚命嘶吼，焦急、聲嘶力竭，邊奔跑邊喊，尾音拉長破音'},
-  {id: 'e11', who: 'S', shot: 's37', at: 2.0, text: '這一劍，替你敲！', style: '站在屋頂對天怒吼，用盡全力、豪氣萬丈、熱血沸騰，每個字都像劈出去的劍'},
-  {id: 'e12', who: 'M', shot: 's44', at: 2.0, text: '這口鐘……裂了。', style: '虛弱、喘息、帶一點苦笑'},
-  {id: 'e13', who: 'S', shot: 's45', at: 1.2, text: '人沒裂就好。', style: '累極了但輕鬆地笑，像朋友開玩笑'},
-  {id: 'e14', who: 'M', shot: 's46', at: 1.0, text: '阿彌陀佛。後會有期。', style: '溫和、敬重、沉穩，帶笑意'},
+  {id: 'e11', who: 'S', shot: 's37', at: 1.5, text: '這一劍，替你敲！', style: '站在屋頂對天怒吼，用盡全力、豪氣萬丈、熱血沸騰，每個字都像劈出去的劍'},
+  {id: 'e12', who: 'M', shot: 's44', at: 1.2, text: '這口鐘……裂了。', style: '虛弱、喘息、帶一點苦笑'},
+  {id: 'e13', who: 'S', shot: 's45', at: 0.8, text: '人沒裂就好。', style: '累極了但輕鬆地笑，像朋友開玩笑'},
+  {id: 'e14', who: 'M', shot: 's46', at: 0.8, text: '阿彌陀佛。後會有期。', style: '溫和、敬重、沉穩，帶笑意'},
 ];
 
 /* white impact flashes, seconds into the finished shot (edit.mjs draws them, sfx.mjs hits on them) */

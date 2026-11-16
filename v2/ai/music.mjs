@@ -23,6 +23,8 @@ const CUES = [
     hits: [[at('n02'), 'drop to a tense low pulse under dialogue'], [at('s08'), 'the music slams back in, full force'], [hitAt('s08'), 'massive braam hit'], [hitAt('s15'), 'huge impact hit and a short silence'], [at('s16', 1), 'low tense pulse under dialogue']]},
   {id: 'm3', from: 'n09', to: 's28', text: 'A leap down into the rain, then time freezes and the raindrops hang in the air: the music suspends — weightless high shimmering strings, glassy textures, a slow heartbeat sub pulse, the dizi motif fragile and alone. Then a violent burst of drums and stabbing strings for a fast clash on a bridge, ending on an ominous low brass swell and distant war horns, dread rising.',
     hits: [[at('s19', 1), 'everything stops, weightless suspension'], [at('s22'), 'violent burst of drums'], [hitAt('s23'), 'big braam'], [at('s26'), 'sudden silence, one low tone'], [at('s27', 2), 'low brass swell of dread']]},
+  {id: 'm3b', from: 's27', to: 's29', text: 'Dread before the storm: the night is silent, then a deep low brass swell rises slowly, distant war drums start beating like a heartbeat, taut tremolo strings creep upward as thousands of archers draw their bows, the tension tightening and tightening, ending on one huge percussive release hit as the arrows fly. 70 bpm.',
+    hits: [[at('s28'), 'war drums begin'], [at('n15', 0.85), 'huge release hit']]},
   {id: 'm4', from: 's28', to: 's44', text: 'The epic climax: ten thousand flaming arrows fill the sky, a monk strikes a giant bronze bell and a golden dome of light shields the city, a swordsman stops the arrows and turns them into a dragon of cold light that plunges into the river. Massive: huge trailer percussion, colossal braams, driving string ostinatos, choir-like synth pads (no words), the dizi motif soaring over the full sound as a heroic theme, building to an overwhelming peak, then a powerful release and a golden fading afterglow.',
     hits: [[at('s29'), 'drums and ostinato drive'], [hitAt('s31'), 'colossal bell-like braam and sub drop'], [hitAt('s35'), 'tension crack, everything drops to a held high string note'], [at('s37', 2.3), 'sudden silence'], [at('n14', 2.4), 'shimmering rise'], [at('s39'), 'heroic theme at full power'], [hitAt('s41'), 'the biggest hit of the score'], [at('s43'), 'release into a warm fading afterglow']]},
   {id: 'm5', from: 's44', to: 'end', text: 'Dawn after the battle, exhaustion, friendship and respect. A solo dizi plays a tender, nostalgic version of the heroic motif over warm low strings and soft pads, resolving into D major, a distant soft temple bell, peaceful ending with a long fade. 60 bpm.', hits: []},
@@ -40,16 +42,19 @@ await Promise.all(todo.map((c) => new Promise((ok) => {
    crossfading into the next. m4 goes silent at 50–55 s and slams back at 56 s: that slam is put on the dragon (s39), which lays
    the silence over the arrows turning (s38), the crack (s35) on its drop to a held note and the river wall (s41) on its peak;
    its release (from 106 s) plays under the dome dissolving (s43). */
+/* m1's slow build carries the whole meeting in the tower; m2 (the fight) comes in as the monk gathers his power (n03c).
+   m3b (dread) is cut so its quiet stretch lies under the archers drawing and its release hit (60 s) on the volley (n15). */
 const PIECES = [
-  {c: 'm1', from: 0, at: 0, until: T.s07},
-  {c: 'm2', from: 0, at: T.s07, until: T.n09},
-  {c: 'm3', from: 0, at: T.n09, until: T.s39 - 56},
+  {c: 'm1', from: 0, at: 0, until: T.n03c},
+  {c: 'm2', from: 0, at: T.n03c, until: T.n09},
+  {c: 'm3', from: 0, at: T.n09, until: T.s27},
+  {c: 'm3b', from: 53, at: T.n15 + 0.85 - 7, until: T.n15 + 3.5},   // overlaps m4's quiet opening so the release hit rings out
   {c: 'm4', from: 0, at: T.s39 - 56, until: T.s43},
   {c: 'm4', from: 106, at: T.s43, until: T.s44},
   {c: 'm5', from: 0, at: T.s44, until: T.end},
 ];
 /* the music steps back where the picture goes still: frozen time (s19–s21) and the beads falling into the canal (s26) */
-const DIP = [[T.s19, 1], [T.s19 + 1.5, .3], [T.s22 - .3, .3], [T.s22, 1], [T.s26, 1], [T.s26 + .8, .35], [T.s27 + 2, .5], [T.s28, 1]];
+const DIP = [[T.s19, 1], [T.s19 + 1.5, .3], [T.s22 - .3, .3], [T.s22, 1], [T.s26, 1], [T.s26 + .8, .35], [T.s27 + 1.5, .35], [T.s27 + 2.5, 1]];
 if (CUES.every((c) => existsSync(join(M, `${c.id}.mp3`)))) {
   const XF = 1.2, args = [], f = [];
   PIECES.forEach((p, i) => {

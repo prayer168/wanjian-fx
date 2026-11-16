@@ -28,6 +28,11 @@ const GRADE = [
    last frame of the first pass, so it is dropped) */
 function source(s) {
   const c = join(OUT, 'clips', `${s.id}.mp4`), x = join(OUT, 'clips', `${s.id}_x.mp4`);
+  if (s.rev) {   /* rev: the first rev seconds played backwards then forwards — a wind-up the clip itself does not have */
+    const r = join(SEG, `${s.id}.rev.mp4`);
+    if (!newer(r, c)) ff(['-i', c, '-filter_complex', `[0:v]trim=0:${s.rev},setpts=PTS-STARTPTS,split[a][b];[a]reverse,trim=end_frame=${Math.round(s.rev * 16) - 1},setpts=PTS-STARTPTS[ra];[ra][b]concat=n=2:v=1[v]`, '-map', '[v]', '-c:v', 'libx264', '-crf', '12', '-preset', 'fast', r]);
+    return r;
+  }
   if (!existsSync(x)) return c;
   const j = join(SEG, `${s.id}.long.mp4`);
   if (!newer(j, c, x)) ff(['-i', c, '-i', x, '-filter_complex', '[1:v]trim=start_frame=1,setpts=PTS-STARTPTS[b];[0:v][b]concat=n=2:v=1[v]', '-map', '[v]', '-c:v', 'libx264', '-crf', '12', '-preset', 'fast', j]);
@@ -104,9 +109,20 @@ const lines = only ? [] : LINES.filter((L) => existsSync(join(OUT, 'vo', `${L.id
 const VOL = join(OUT, 'vo', 'lev'); mkdirSync(VOL, {recursive: true});
 for (const L of lines) {
   const i = join(OUT, 'vo', `${L.id}.wav`), o = join(VOL, `${L.id}.wav`), tempo = L.tempo ? `atempo=${L.tempo},` : '';   // tempo: a line spoken a little faster to fit its shot
-  if (!(newer(o, i) && existsSync(o + '.key') && readFileSync(o + '.key', 'utf8') === tempo)) {
-    ff(['-i', i, '-af', `silenceremove=start_periods=1:start_threshold=-50dB,${tempo}highpass=f=80,loudnorm=I=-16:TP=-2:LRA=7`, '-ar', '48000', o]);
-    writeFileSync(o + '.key', tempo);
+  const stamp = tempo + 'exact';
+  if (!(newer(o, i) && existsSync(o + '.key') && readFileSync(o + '.key', 'utf8') === stamp)) {
+    /* silence trimmed at both ends, then measured and set to exactly -16 LUFS with one fixed gain (loudnorm's dynamic mode
+       misses by up to 3 dB on clips this short), a limiter catching the peaks of the shouted lines */
+    const tmp = o.replace(/\.wav$/, '.trim.wav'), trim = 'silenceremove=start_periods=1:start_threshold=-50dB';
+    ff(['-i', i, '-af', `${trim},areverse,${trim},areverse,${tempo}highpass=f=80`, '-ar', '48000', '-c:a', 'pcm_f32le', tmp]);
+    const lufs = (f) => { const r = spawnSync('ffmpeg', ['-hide_banner', '-i', f, '-af', 'ebur128', '-f', 'null', '-'], {encoding: 'utf8'}).stderr; return +r.slice(r.lastIndexOf('Integrated loudness')).match(/I:\s+(-?[\d.]+) LUFS/)[1]; };
+    /* the limiter takes back a little on peaky lines, so the gain is corrected until the result is within 0.2 LU */
+    let gain = -16 - lufs(tmp);
+    for (let k = 0; k < 4; k++) {
+      ff(['-i', tmp, '-af', `volume=${gain.toFixed(2)}dB,alimiter=limit=0.79:level=false:attack=2:release=50`, '-ar', '48000', o]);
+      const miss = -16 - lufs(o); if (Math.abs(miss) < 0.2) break; gain += miss;
+    }
+    writeFileSync(o + '.key', stamp);
   }
 }
 const crowd = join(OUT, 'crowd.wav');
@@ -136,5 +152,20 @@ const m = JSON.parse(meas.slice(meas.lastIndexOf('{'), meas.lastIndexOf('}') + 1
 ff(['-i', raw, '-af', `loudnorm=${LN}:measured_I=${m.input_i}:measured_TP=${m.input_tp}:measured_LRA=${m.input_lra}:measured_thresh=${m.input_thresh}:offset=${m.target_offset}:linear=true,aresample=48000`, '-c:a', 'pcm_s16le', wav]);
 
 const mp4 = join(OUT, `${name}.mp4`);
-ff(['-i', pic, '-i', wav, '-map', '0:v', '-map', '1:a', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '320k', '-shortest', '-movflags', '+faststart', mp4]);
+/* subtitles burned into the lower letterbox bar (the picture is never covered): each line from its first word to 0.4 s after
+   its last, Noto Serif TC (SIL Open Font License). <name>-clean.mp4 is the same film without them. */
+const ts = (t) => { const cs = Math.round(t * 100); return `${Math.floor(cs / 360000)}:${String(Math.floor(cs / 6000) % 60).padStart(2, '0')}:${String(Math.floor(cs / 100) % 60).padStart(2, '0')}.${String(cs % 100).padStart(2, '0')}`; };
+const subs = lines.map((L, i) => { const a = T[L.shot] + L.at; return [a, Math.min(a + spans[i][1] - spans[i][0] - .3 + .4, ...lines.slice(i + 1).map((M) => T[M.shot] + M.at - .1)), L.text.replace(/[，。]/g, '　').trim()]; });   // subtitle style: no commas or full stops
+writeFileSync(join(OUT, `${name}.ass`), '﻿' + [
+  '[Script Info]', 'ScriptType: v4.00+', 'PlayResX: 1920', 'PlayResY: 1080', 'WrapStyle: 2', '',
+  '[V4+ Styles]', 'Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding',
+  'Style: Line,Noto Serif TC,44,&H00EDF3F5,&H00EDF3F5,&H00000000,&H00000000,0,0,0,0,100,100,3,0,1,1.2,0,2,40,40,9,1', '',
+  '[Events]', 'Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text',
+  ...subs.map(([a, b, t]) => `Dialogue: 0,${ts(a)},${ts(b)},Line,,0,0,0,,{\\fad(120,160)}${t}`),
+].join('\n'));
+const subbed = join(SEG, '_picture.subs.mp4'), font = join(OUT, 'fonts', 'NotoSerifTC-VF.ttf');
+if (!existsSync(font)) { mkdirSync(join(OUT, 'fonts'), {recursive: true}); writeFileSync(font, readFileSync('C:/Windows/Fonts/NotoSerifTC-VF.ttf')); }   // libass reads fonts from a folder next to the .ass (a drive letter in a filter argument needs double escaping)
+execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', pic, '-vf', `subtitles=${name}.ass:fontsdir=fonts`, '-c:v', 'libx264', '-crf', '16', '-preset', 'slow', '-pix_fmt', 'yuv420p', subbed], {stdio: 'inherit', cwd: OUT});
+ff(['-i', subbed, '-i', wav, '-map', '0:v', '-map', '1:a', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '320k', '-shortest', '-movflags', '+faststart', mp4]);
+ff(['-i', pic, '-i', wav, '-map', '0:v', '-map', '1:a', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '320k', '-shortest', '-movflags', '+faststart', join(OUT, `${name}-clean.mp4`)]);
 console.log('done', mp4, `${(total + TAIL).toFixed(1)}s`);

@@ -31,8 +31,8 @@ function mob(ids, t, n, spread, {gain = .25, far = .5, panW = .8} = {}) {
 /* s28: the general's orders and the army answering */
 say('g_draw', g('s28', .3), {gain: .7, far: .25, pan: -.2});
 mob(['a_he', 'b_he'], g('s28', 1.7), 14, .25, {gain: .3, far: .45});
-say('g_loose', g('s28', 2.9), {gain: .75, far: .25, pan: -.2});
-mob(['a_sha', 'b_sha', 'g_sha'], g('s28', 3.5), 18, .6, {gain: .3, far: .5});
+say('g_loose', g('s28', 3.4), {gain: .75, far: .25, pan: -.2});   // the order, then the volley leaves the bows (n15)
+mob(['a_sha', 'b_sha', 'g_sha'], g('n15', .9), 18, .6, {gain: .3, far: .5});
 /* s29: fire falling on the town, heard from far off */
 say('w_fire', g('s29', 3.4), {gain: .35, far: .6, pan: .3}); say('t_hide', g('s29', 4.4), {gain: .35, far: .6, pan: -.4});
 say('f_run', g('s29', 5.3), {gain: .3, far: .6, pan: .5});
