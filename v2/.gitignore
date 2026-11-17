@@ -1,0 +1,5 @@
+out/
+render/node_modules/
+audio/stems/
+assets/mocap/*
+!assets/mocap/下載清單.md

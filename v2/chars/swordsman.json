@@ -1,0 +1,64 @@
+{
+ "name": "swordsman",
+ "packs": [
+  "D:/makehuman-assets/makehuman_system_assets_cc0.zip",
+  "D:/makehuman-assets/skins02_cc0.zip",
+  "D:/makehuman-assets/eyebrows01_cc0.zip",
+  "D:/makehuman-assets/eyelashes01_cc0.zip",
+  "D:/makehuman-assets/hair01_cc0.zip",
+  "D:/makehuman-assets/system_hair_materials01_cc0.zip"
+ ],
+ "human": {
+  "phenotype": {
+   "gender": 1.0,
+   "age": 0.5,
+   "muscle": 0.66,
+   "weight": 0.42,
+   "proportions": 0.75,
+   "height": 0.68,
+   "cupsize": 0.5,
+   "firmness": 0.5,
+   "race": {
+    "asian": 1.0,
+    "caucasian": 0.0,
+    "african": 0.0
+   }
+  },
+  "rig": "game_engine",
+  "eyes": "high-poly/high-poly.mhclo",
+  "eyebrows": "mindfront_eyebrows_03/mindfront_eyebrows_03.mhclo",
+  "eyelashes": "eyelashes01/eyelashes01.mhclo",
+  "teeth": "teeth_base/teeth_base.mhclo",
+  "hair": "ponytail01/ponytail01.mhclo",
+  "skin_mhmat": "young_asian_male/young_asian_male.mhmat",
+  "skin_material_type": "GAMEENGINE",
+  "eyes_material_type": "GAMEENGINE",
+  "clothes_material_type": "GAMEENGINE"
+ },
+ "costume": {
+  "top": {
+   "mat": "robe",
+   "off": 0.014
+  },
+  "skirt": {
+   "mat": "skirt",
+   "flare": 0.13,
+   "hem": 0.1
+  },
+  "pants": {
+   "mat": "pants"
+  },
+  "boots": {
+   "mat": "boots",
+   "h": 0.26
+  },
+  "belt": {
+   "mat": "belt",
+   "h": 0.075
+  },
+  "bracers": {
+   "mat": "bracer",
+   "len": 0.17
+  }
+ }
+}

@@ -1,0 +1,76 @@
+{
+ "name": "monk",
+ "packs": [
+  "D:/makehuman-assets/makehuman_system_assets_cc0.zip",
+  "D:/makehuman-assets/skins02_cc0.zip",
+  "D:/makehuman-assets/eyebrows01_cc0.zip",
+  "D:/makehuman-assets/eyelashes01_cc0.zip",
+  "D:/makehuman-assets/hair01_cc0.zip",
+  "D:/makehuman-assets/system_hair_materials01_cc0.zip"
+ ],
+ "human": {
+  "phenotype": {
+   "gender": 1.0,
+   "age": 0.62,
+   "muscle": 1.0,
+   "weight": 0.8,
+   "proportions": 0.6,
+   "height": 0.6,
+   "cupsize": 0.5,
+   "firmness": 0.5,
+   "race": {
+    "asian": 1.0,
+    "caucasian": 0.0,
+    "african": 0.0
+   }
+  },
+  "rig": "game_engine",
+  "eyes": "high-poly/high-poly.mhclo",
+  "eyebrows": "mindfront_eyebrows_07/mindfront_eyebrows_07.mhclo",
+  "eyelashes": "eyelashes01/eyelashes01.mhclo",
+  "teeth": "teeth_base/teeth_base.mhclo",
+  "skin_mhmat": "middleage_asian_male/middleage_asian_male.mhmat",
+  "skin_material_type": "GAMEENGINE",
+  "eyes_material_type": "GAMEENGINE",
+  "clothes_material_type": "GAMEENGINE"
+ },
+ "costume": {
+  "top": {
+   "mat": "kasaya",
+   "off": 0.016,
+   "bare_right": true
+  },
+  "sleeves": [
+   {
+    "side": "l",
+    "mat": "kasaya_in",
+    "r0": 0.075,
+    "r1": 0.105,
+    "over": 0.0,
+    "sag": 0.03
+   }
+  ],
+  "skirt": {
+   "mat": "skirt",
+   "flare": 0.11,
+   "hem": 0.2
+  },
+  "pants": {
+   "mat": "pants"
+  },
+  "boots": {
+   "mat": "wraps",
+   "h": 0.34,
+   "off": 0.014
+  },
+  "belt": {
+   "mat": "belt",
+   "h": 0.09
+  },
+  "beads": {
+   "mat": "beads",
+   "n": 48,
+   "r": 0.012
+  }
+ }
+}
