@@ -33,6 +33,7 @@ function source(s) {
     if (!newer(r, c)) ff(['-i', c, '-filter_complex', `[0:v]trim=0:${s.rev},setpts=PTS-STARTPTS,split[a][b];[a]reverse,trim=end_frame=${Math.round(s.rev * 16) - 1},setpts=PTS-STARTPTS[ra];[ra][b]concat=n=2:v=1[v]`, '-map', '[v]', '-c:v', 'libx264', '-crf', '12', '-preset', 'fast', r]);
     return r;
   }
+  if (s.xonly) return x;   // xonly: the extension pass alone
   if (!existsSync(x)) return c;
   const j = join(SEG, `${s.id}.long.mp4`);
   if (!newer(j, c, x)) ff(['-i', c, '-i', x, '-filter_complex', '[1:v]trim=start_frame=1,setpts=PTS-STARTPTS[b];[0:v][b]concat=n=2:v=1[v]', '-map', '[v]', '-c:v', 'libx264', '-crf', '12', '-preset', 'fast', j]);

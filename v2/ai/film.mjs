@@ -9,6 +9,7 @@
 //   tr:   how this shot comes in — {type: 'dissolve', d: 1} (default is a straight cut)
 //   ext:  the clip is extended once with a second Wan pass that starts from its last frame (extmove = that pass's prompt)
 //   rev:  the first rev seconds of the clip play backwards, then forwards (a wind-up the clip opens past)
+//   xonly: only the extension pass is used (the first pass moved the wrong way; the extension starts from its last frame)
 //   flip: the clip is mirrored in the edit (keeps the swordsman left / monk right when Wan put them the other way round)
 //   Fight rules: the swordsman is always screen LEFT and the monk screen RIGHT; the monk meets the blade only with his palm on
 //   the FLAT of the blade, at the swordsman's wrist, or with his bronze-hard forearm — a blade never passes into a body.
@@ -154,9 +155,9 @@ export const SHOTS = [
   {id: 'n10', refs: ['S_sheet', 'bridge'], dur: 1.7, speed: 1.4,
     key: `Medium shot at night in heavy rain on the stone bridge from the reference image: ${'$S'} charges forward from left to right through a drifting curtain of water spray, sword raised high in both hands, face fierce, red lantern light behind him.`,
     move: `The swordsman bursts through the drifting water spray charging from left to right, sword raised, water exploding off his robes. Fast tracking shot.`},
-  {id: 's24', refs: ['bridge', 'S_sheet', 'M_sheet'], dur: 3, speed: 1.5,
-    key: `Medium two-shot at night in heavy rain on the stone bridge: ${'$S'} and ${'$M'} fight at close range. There is exactly one sword in the picture, held by the swordsman; the monk is completely bare-handed and blocks the flat of the blade with his open palm and forearm. Water splashing up from their feet in sheets, wet faces, red lantern light and cool rim light.`,
-    move: `A fast close-range exchange in the rain: only the swordsman holds a sword, the monk is bare-handed. The swordsman cuts, the monk parries the blade with his open palm and forearm, they trade blows, water splashes up from the stone under their feet. Handheld camera, fast and powerful.`, seed: 8},
+  {id: 's24', refs: ['bridge', 'S_sheet', 'M_sheet'], dur: 1.35, speed: 1.1,   // only the wrist block: after 1.8 s Wan swings the blade through the monk's sleeve
+    key: `Medium two-shot at night in heavy rain on the stone bridge, side on: ${'$S'} on the LEFT and ${'$M'}, his prayer beads still on, on the RIGHT, at close range. The monk's open right palm is pressed against the swordsman's sword WRIST, pushing the whole sword arm wide and high to the side, so the steel blade points away from both of them up into the empty rainy air above the bridge railing, far from the monk's arms, head and body. There is exactly one sword in the picture. Water splashing up from their feet, wet faces, red lantern light and cool rim light.`,
+    move: `The monk shoves the swordsman's sword arm away by the wrist, the swordsman spins out of it and slashes again, the monk sways back so the blade passes through empty air in front of him, then knocks the wrist aside with his palm; the steel never touches the monk. Water splashes up from the stone under their feet. Handheld camera, fast and powerful.`, seed: 8},
   {id: 'n11', refs: ['S_sheet', 'M_sheet', 'bridge'], dur: 1.5, speed: 1.5,
     key: `Low angle close shot at night at ankle height on the wet stone bridge in heavy rain: the swordsman's dark boots on the LEFT and the monk's grey leg wraps and cloth shoes on the RIGHT, both mid-step, water splashing up in sheets, red lantern reflections in the puddles.`,
     move: `Fast footwork: the feet pivot, slide and stamp on the wet stone, water splashes up with every step. Camera static at ground level.`},
@@ -251,7 +252,7 @@ export const SHOTS = [
   {id: 's46', refs: ['tower', 'S_sheet', 'M_sheet'], dur: 5.4, speed: 0.92,
     key: `Medium-wide shot at dawn on the top floor of the bell tower: ${'$S'} and ${'$M'} stand facing each other in front of the cracked bronze bell and salute each other — the swordsman with a fist-and-palm salute, the monk with one hand raised in a Buddhist salute. Warm low sun behind them, mist and the river gorge beyond.`,
     move: `The two men salute each other with quiet respect and bow slightly, warm sunlight flaring behind them, mist drifting beyond. Slow arc around them.`},
-  {id: 's47', refs: ['city', 'tower'], dur: 8.5, ext: 1, tr: {type: 'dissolve', d: 1},
+  {id: 's47', refs: ['city', 'tower'], dur: 7.5, speed: 0.65, ext: 1, xonly: 1, tr: {type: 'dissolve', d: 1},   // the first pass pushed in toward the tower; only the pull-back pass is used
     extmove: `The aerial shot keeps rising and pulling back from the bell tower and the cliff city, the river full of standing arrows below, golden sunlight spreading over the mist and the mountains.`,
     key: `Extreme wide aerial at dawn: the cliff city in golden morning mist, the seven-storey bell tower at the cliff edge; in the river below, thousands of arrows stand up out of the water like a field of reeds; on the far plain, the enemy army is withdrawing in long columns. The sun rises over the mountains.`,
     move: `Slow, majestic aerial pull back and rise away from the bell tower and the cliff city, revealing the river full of standing arrows and the army withdrawing, sunlight spreading over the mist.`},

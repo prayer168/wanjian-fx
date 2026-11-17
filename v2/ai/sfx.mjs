@@ -155,7 +155,7 @@ put(g('s23', FLASH.s23), 6, bell(196, {decay: 3, seed: 23}), {gain: .25}); put(g
 /* n10–n13 and s24–s25: the bridge fight */
 hit('fast', g('n10'), {gain: .5});
 for (const ts of [.2, .6, 1.0, 1.4, 1.8]) hit('splash', gs('n10', ts), {gain: .3, rate: 1.1 + rp(.15), pan: rp(.2)});   // running through the water
-for (const [t, k] of [[.3, 0], [.75, 1], [1.3, 2], [1.85, 3], [2.4, 4]]) { clash(g('s24', t), k, {pan: rp(.3)}); hit(k % 2 ? 'fast' : 'synthW', g('s24', t - .18), {gain: .25, max: .3}); }
+hit('heavy', g('s24', .05), {gain: .45, rate: 1.2}); hit('fast', g('s24', .95), {gain: .3});                        // the palm on the sword wrist, then the swordsman spins out
 hit('splash', g('n11', .3), {gain: .4}); hit('splash', g('n11', .9), {gain: .35, rate: 1.1});
 hit('heavy', g('n12', .02), {gain: .55}); hit('watery', g('n12', .1), {gain: .3});                      // the palm sweeps over his head
 hit('metal', g('n13', .03), {gain: .35, rate: 1.5}); hit('blade', gs('n13', 1.0), {gain: .4}); hit('ric3', gs('n13', 1.2), {gain: .45});   // the point at his beads, then the flick
