@@ -39,7 +39,8 @@ await Promise.all(todo.map((c) => new Promise((ok) => {
 
 /* Lyria returns each cue at its own length (m4: 117 s for 85 asked) and puts its big moments where it likes, so the score is cut
    from the cues by their loudness curves: each piece plays the cue from `from` seconds at `at` on the edit timeline until `until`,
-   crossfading into the next. m4 goes silent at 50–55 s and slams back at 56 s: that slam is put on the dragon (s39), which lays
+   crossfading into the next. m4 goes silent at 50–55 s and slams back at 56 s: that slam is put on the dragon (s39) — the cue is joined at the crack (s35),
+   where it drops (33 s), so its opening still starts on the volley — which lays
    the silence over the arrows turning (s38), the crack (s35) on its drop to a held note and the river wall (s41) on its peak;
    its release (from 106 s) plays under the dome dissolving (s43). */
 /* m1's slow build carries the whole meeting in the tower; m2 (the fight) comes in as the monk gathers his power (n03c).
@@ -49,7 +50,8 @@ const PIECES = [
   {c: 'm2', from: 0, at: T.n03c, until: T.n09},
   {c: 'm3', from: 0, at: T.n09, until: T.s27},
   {c: 'm3b', from: 53, at: T.n15 + 0.85 - 7, until: T.n15 + 3.5},   // overlaps m4's quiet opening so the release hit rings out
-  {c: 'm4', from: 0, at: T.s39 - 56, until: T.s43},
+  {c: 'm4', from: 0, at: T.n15 + .3, until: T.s35},                         // m4's drive (7.9 s) kicks in as the monk runs up the tower (n16)
+  {c: 'm4', from: 56 - (T.s39 - T.s35), at: T.s35, until: T.s43},           // ...and its slam (56 s) on the dragon
   {c: 'm4', from: 106, at: T.s43, until: T.s44},
   {c: 'm5', from: 0, at: T.s44, until: T.end},
 ];

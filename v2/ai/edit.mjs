@@ -145,23 +145,56 @@ if (lines.length) {
 f += `[mix]atrim=0:${(total + TAIL).toFixed(2)}[out]`;
 const raw = join(OUT, 'mix.raw.wav'), wav = join(OUT, 'mix.wav');
 ff([...args, '-filter_complex', f, '-map', '[out]', '-ar', '48000', '-c:a', 'pcm_f32le', raw, ...(lines.length ? ['-map', '[vout]', '-ar', '48000', '-c:a', 'pcm_f32le', join(OUT, 'vo.stem.wav')] : [])]);   // the voices alone, for checking they sit on top of the mix
-/* two-pass loudness normalisation (one pass lands ~1 LU off on a mix this dynamic) */
-const LN = 'I=-14:TP=-1.5:LRA=16';
-const meas = spawnSync('ffmpeg', ['-hide_banner', '-i', raw, '-af', `loudnorm=${LN}:print_format=json`, '-f', 'null', '-'], {encoding: 'utf8'}).stderr;
+/* levelling: the raw mix swings ~10 dB between the fights and the quiet talk, so a slow gain rides it toward one loudness —
+   the 3 s short-term loudness (read 1.5 s ahead, so the gain moves with the sound instead of after it), 85 % of the way to the
+   target, at most ±8 dB, never lifting near-silence; smoothed both ways so it never pumps. A bus compressor then catches the
+   single hits that are still sharp. */
+const lev = join(OUT, 'mix.lev.wav');
+{
+  const r = spawnSync('ffmpeg', ['-hide_banner', '-nostats', '-i', raw, '-af', 'ebur128=metadata=1,ametadata=print:key=lavfi.r128.S:file=-', '-f', 'null', '-'], {encoding: 'utf8', maxBuffer: 1 << 28}).stdout;
+  const S = []; let t = 0;
+  for (const ln of r.split('\n')) { const p = ln.match(/pts_time:([\d.]+)/); if (p) t = +p[1]; const s = ln.match(/lavfi\.r128\.S=(-?[\d.]+)/); if (s) S.push([t, +s[1]]); }
+  const at = (x) => { let k = S.findIndex(([u]) => u >= x); return k < 0 ? S.at(-1)[1] : S[k][1]; };
+  const TGT = -14.5, R = 10, n = Math.ceil(S.at(-1)[0] * R) + 1, gdb = new Float64Array(n);
+  for (let i = 0; i < n; i++) { const s = at(i / R + 1.5); gdb[i] = s < -40 ? 0 : Math.max(-8, Math.min(8, (TGT - s) * .85)); }
+  for (const dir of [1, -1]) { let y = gdb[dir > 0 ? 0 : n - 1]; for (let k = 0; k < n; k++) { const i = dir > 0 ? k : n - 1 - k; y += (gdb[i] - y) * (1 / (R * .6)); gdb[i] = y; } }   // ~0.6 s one-pole, forward then backward
+  const buf = readFileSync(raw), d = buf.indexOf('data'), len = buf.readUInt32LE(d + 4), x = new Float32Array(buf.buffer.slice(buf.byteOffset + d + 8, buf.byteOffset + d + 8 + len));
+  for (let j = 0; j < x.length; j += 2) {
+    const u = j / 2 / 48000 * R, i = Math.min(n - 2, Math.floor(u)), g = Math.pow(10, (gdb[i] + (gdb[i + 1] - gdb[i]) * (u - i)) / 20);
+    x[j] *= g; x[j + 1] *= g;
+  }
+  const out = Buffer.from(buf); Buffer.from(x.buffer).copy(out, d + 8); writeFileSync(lev, out);
+}
+/* two-pass loudness normalisation, now with a tight loudness range */
+const LN = 'I=-14:TP=-1.5:LRA=7', BUS = 'acompressor=threshold=0.2:ratio=3:attack=8:release=250:makeup=1';
+const meas = spawnSync('ffmpeg', ['-hide_banner', '-i', lev, '-af', `${BUS},loudnorm=${LN}:print_format=json`, '-f', 'null', '-'], {encoding: 'utf8'}).stderr;
 const m = JSON.parse(meas.slice(meas.lastIndexOf('{'), meas.lastIndexOf('}') + 1));
-ff(['-i', raw, '-af', `loudnorm=${LN}:measured_I=${m.input_i}:measured_TP=${m.input_tp}:measured_LRA=${m.input_lra}:measured_thresh=${m.input_thresh}:offset=${m.target_offset}:linear=true,aresample=48000`, '-c:a', 'pcm_s16le', wav]);
+ff(['-i', lev, '-af', `${BUS},loudnorm=${LN}:measured_I=${m.input_i}:measured_TP=${m.input_tp}:measured_LRA=${m.input_lra}:measured_thresh=${m.input_thresh}:offset=${m.target_offset}:linear=true,aresample=48000`, '-c:a', 'pcm_s16le', wav]);
 
 const mp4 = join(OUT, `${name}.mp4`);
 /* subtitles burned into the lower letterbox bar (the picture is never covered): each line from its first word to 0.4 s after
    its last, Noto Serif TC (SIL Open Font License). <name>-clean.mp4 is the same film without them. */
 const ts = (t) => { const cs = Math.round(t * 100); return `${Math.floor(cs / 360000)}:${String(Math.floor(cs / 6000) % 60).padStart(2, '0')}:${String(Math.floor(cs / 100) % 60).padStart(2, '0')}.${String(cs % 100).padStart(2, '0')}`; };
-const subs = lines.map((L, i) => { const a = T[L.shot] + L.at; return [a, Math.min(a + spans[i][1] - spans[i][0] - .3 + .4, ...lines.slice(i + 1).map((M) => T[M.shot] + M.at - .1)), L.text.replace(/[，。]/g, '　').trim()]; });   // subtitle style: no commas or full stops
+/* one short line at a time: each line is cut at its punctuation into phrases, neighbours joined while they stay within SUBMAX
+   characters; each piece comes up when it is spoken — the cut is put in the pause in the voice nearest to where the piece
+   should start by its share of the characters */
+const SUBMAX = 8;
+const subs = lines.flatMap((L, i) => {
+  const a = T[L.shot] + L.at, len = spans[i][1] - spans[i][0] - .3, end = Math.min(a + len + .4, ...lines.slice(i + 1).map((M) => T[M.shot] + M.at - .1));
+  const phrases = L.text.split(/(?<=[，。！？、])/).map((p) => p.replace(/[，。、]$/, '').trim()).filter(Boolean), pcs = [];
+  for (const p of phrases) { const last = pcs.at(-1); if (last && (last + p).length <= SUBMAX && !/[！？]$/.test(last)) pcs[pcs.length - 1] = last + '　' + p; else pcs.push(p); }
+  const sil = spawnSync('ffmpeg', ['-hide_banner', '-i', join(VOL, `${L.id}.wav`), '-af', 'silencedetect=noise=-32dB:d=0.12', '-f', 'null', '-'], {encoding: 'utf8'}).stderr;
+  const gaps = [...sil.matchAll(/silence_start: ([\d.]+)[\s\S]*?silence_end: ([\d.]+)/g)].map((g) => (+g[1] + +g[2]) / 2).filter((g) => g > .2 && g < len - .2);
+  const chars = (p) => p.replace(/　/g, '').length, total = chars(pcs.join('')); let acc = 0, prev = 0;
+  const starts = pcs.map((p, k) => { if (!k) return 0; acc += chars(pcs[k - 1]); const want = len * acc / total, near = gaps.filter((g) => g > prev + .5).sort((x, y) => Math.abs(x - want) - Math.abs(y - want))[0]; return (prev = near !== undefined && Math.abs(near - want) < .8 ? near : want); });
+  return pcs.map((p, k) => [a + starts[k], k + 1 < pcs.length ? a + starts[k + 1] : end, p]);
+});
 writeFileSync(join(OUT, `${name}.ass`), '﻿' + [
   '[Script Info]', 'ScriptType: v4.00+', 'PlayResX: 1920', 'PlayResY: 1080', 'WrapStyle: 2', '',
   '[V4+ Styles]', 'Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding',
-  'Style: Line,Noto Serif TC,44,&H00EDF3F5,&H00EDF3F5,&H00000000,&H00000000,0,0,0,0,100,100,3,0,1,1.2,0,2,40,40,9,1', '',
+  'Style: Line,Noto Serif TC,54,&H00EDF3F5,&H00EDF3F5,&H00000000,&H64000000,0,0,0,0,100,100,3,0,1,2.2,1,2,40,40,26,1', '',
   '[Events]', 'Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text',
-  ...subs.map(([a, b, t]) => `Dialogue: 0,${ts(a)},${ts(b)},Line,,0,0,0,,{\\fad(120,160)}${t}`),
+  ...subs.map(([a, b, t]) => `Dialogue: 0,${ts(a)},${ts(b)},Line,,0,0,0,,{\\fad(80,100)}${t}`),
 ].join('\n'));
 const subbed = join(SEG, '_picture.subs.mp4'), font = join(OUT, 'fonts', 'NotoSerifTC-VF.ttf');
 if (!existsSync(font)) { mkdirSync(join(OUT, 'fonts'), {recursive: true}); writeFileSync(font, readFileSync('C:/Windows/Fonts/NotoSerifTC-VF.ttf')); }   // libass reads fonts from a folder next to the .ass (a drive letter in a filter argument needs double escaping)

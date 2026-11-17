@@ -16,8 +16,8 @@ const a = process.argv.slice(2), mode = a[0], redo = a.includes('--redo');
 const jobs = a.includes('--jobs') ? Number(a[a.indexOf('--jobs') + 1]) : 3;
 const only = a.slice(1).filter((x, i, l) => !x.startsWith('--') && l[i - 1] !== '--jobs');
 
-/* refs: cast names, 'test02', or another shot's keyframe (sNN) */
-const castFile = (n) => n === 'test02' || /^s\d\d$/.test(n) ? join(OUT, 'key', `${n}.jpg`) : join(OUT, 'key', 'cast', `${n}.jpg`);
+/* refs: cast names, 'test02', or another shot's keyframe (sNN, nNN) */
+const castFile = (n) => n === 'test02' || /^[sn]\d\d[a-z]?$/.test(n) ? join(OUT, 'key', `${n}.jpg`) : join(OUT, 'key', 'cast', `${n}.jpg`);
 const expand = (refs) => refs.flatMap((r) => r === 'S' ? ['S_sheet', 'S_face'] : r === 'M' ? ['M_sheet', 'M_face'] : [r]);
 const fill = (t) => t.replace(/\$LOOK/g, LOOK.pre).replace(/\$POST/g, LOOK.post).replace(/\$FX/g, LOOK.fx).replace(/\$S\b/g, WHO.S).replace(/\$M\b/g, WHO.M);
 

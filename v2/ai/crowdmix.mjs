@@ -30,13 +30,13 @@ function mob(ids, t, n, spread, {gain = .25, far = .5, panW = .8} = {}) {
 
 /* s28: the general's orders and the army answering */
 say('g_draw', g('s28', .3), {gain: .7, far: .25, pan: -.2});
-mob(['a_he', 'b_he'], g('s28', 1.7), 14, .25, {gain: .3, far: .45});
-say('g_loose', g('s28', 3.4), {gain: .75, far: .25, pan: -.2});   // the order, then the volley leaves the bows (n15)
+mob(['a_he', 'b_he'], g('s28', 1.1), 14, .25, {gain: .3, far: .45});
+say('g_loose', g('s28', 2.3), {gain: .75, far: .25, pan: -.2});   // the order, then the volley leaves the bows (n15)
 mob(['a_sha', 'b_sha', 'g_sha'], g('n15', .9), 18, .6, {gain: .3, far: .5});
-/* s29: fire falling on the town, heard from far off */
-say('w_fire', g('s29', 3.4), {gain: .35, far: .6, pan: .3}); say('t_hide', g('s29', 4.4), {gain: .35, far: .6, pan: -.4});
-say('f_run', g('s29', 5.3), {gain: .3, far: .6, pan: .5});
-mob(['w_scream', 'f_scream', 'b_scream'], g('s29', 3.2), 10, 4, {gain: .18, far: .8});
+/* s29: the town sees the fire coming, heard from far off */
+say('w_fire', g('s29', 2.0), {gain: .35, far: .6, pan: .3}); say('t_hide', g('s29', 2.8), {gain: .35, far: .6, pan: -.4});
+say('f_run', g('s29', 3.4), {gain: .3, far: .6, pan: .5});
+mob(['w_scream', 'f_scream', 'b_scream'], g('s29', 1.8), 10, 4, {gain: .18, far: .8});
 /* s32–s33: under the golden bell */
 say('w_bell', g('s32', 4.8), {gain: .25, far: .5, pan: -.3}); mob(['f_wow', 't_wow'], g('s32', 6), 6, 1.5, {gain: .12, far: .7});
 say('f_wow', g('s33', .2), {gain: .45, pan: .2}); say('t_held', g('s33', 1.0), {gain: .5, pan: .45});

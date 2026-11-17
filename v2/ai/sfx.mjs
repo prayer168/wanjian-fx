@@ -76,8 +76,8 @@ hit('tonal', .25, {gain: .5, rate: .8});
 loop(B, 0, g('n09'), K.gale, env([[0, .12], [g('s01'), .3], [g('s07'), .22], [g('n02'), .14], [g('s16'), .2], [g('n09'), .25]]));
 /* the army camp across the river: a far, dark murmur in the prologue; loud when the archers draw and when the river wall hits */
 {
-  const e = env([[0, 0], [g('s01', 1), .07], [g('s02'), .03], [g('s07'), 0], [g('s27'), 0], [g('s27', 2), .12], [g('s28'), .5], [g('s28', 4), .4], [g('s29', 2), .12],
-    [g('s38'), .1], [g('s39'), .3], [g('s41'), .55], [g('s41', 5), .4], [g('s42'), .3], [g('s42', 4), .06], [g('s43', 2), 0]]);
+  const e = env([[0, 0], [g('s01', 1), .07], [g('s02'), .03], [g('s07'), 0], [g('s27'), 0], [g('s27', 2), .12], [g('s28'), .5], [g('s28', 3), .4], [g('s29', 2), .12],
+    [g('s38'), .1], [g('s39'), .3], [g('s41'), .55], [g('s41', 5), .4], [g('s42'), .3], [g('s42', 3.2), .06], [g('s43', 2), 0]]);
   const [L, Rr] = K.army, lpL = new Biquad('lp', 900), lpR = new Biquad('lp', 900);
   for (let i = 0; i < B[0].length; i++) { const k = i % L.length, l = lpL.run(L[k]), r = lpR.run(Rr[k]), v = e(i / SR); B[0][i] += l * v; B[1][i] += r * v; }
 }
@@ -159,8 +159,8 @@ for (const [t, k] of [[.3, 0], [.75, 1], [1.3, 2], [1.85, 3], [2.4, 4]]) { clash
 hit('splash', g('n11', .3), {gain: .4}); hit('splash', g('n11', .9), {gain: .35, rate: 1.1});
 hit('heavy', g('n12', .02), {gain: .55}); hit('watery', g('n12', .1), {gain: .3});                      // the palm sweeps over his head
 hit('metal', g('n13', .03), {gain: .35, rate: 1.5}); hit('blade', gs('n13', 1.0), {gain: .4}); hit('ric3', gs('n13', 1.2), {gain: .45});   // the point at his beads, then the flick
-clash(g('s25', .12), 2, {gain: .9}); hit('iron3', g('s25', .1), {gain: .6});                                 // point on his chest: steel on an iron body
-hit('snap', g('s25', 1.1), {gain: .5, rate: 1.3});
+hit('blade', g('s25', .08), {gain: .5}); hit('ric3', g('s25', .15), {gain: .3});                                  // the point slips under the cord at his neck
+hit('snap', g('s25', .15), {gain: .5, rate: 1.3});
 for (let k = 0; k < 16; k++) put(g('s25', 1.2 + R() * 1.7), .2, knock(2000 + R() * 1500, {decay: .03, seed: 60 + k}), {gain: .3, pan: rp(.7)});   // beads scatter
 for (const dt of [.4, 1.0, 1.6, 2.3, 3.1]) hit('splash', g('s26', dt), {gain: .2, rate: 1.6 + rp(.2)});         // beads into the canal
 hit('dron', g('s27'), {gain: .25});
@@ -172,8 +172,10 @@ hit('heavy', g('n15', N15), {gain: .6}); hit('passLow', g('n15', N15 + .05), {ga
 for (let k = 0; k < 10; k++) hit(['fast', 'airy'][k % 2], g('n15', N15 + .05 + R() * .4), {gain: .2, rate: .9 + R() * .4, pan: rp(.8)});
 hit('braam', g('s28', .2), {gain: .7}); hit('braam', g('s28', 1.6), {gain: .45, rate: .75, pan: .4});      // war horns
 bed(B, g('s28'), g('s29', 2), () => crackle(28, {rate: 25}), () => crackle(29, {rate: 25}), () => 1, .3);       // torches
-for (let k = 0; k < 14; k++) hit(['fast', 'passLow', 'airy'][k % 3], g('s29', R() * 6), {gain: .18 + R() * .1, rate: .8 + R() * .4, pan: rp(.8)});
-for (let k = 0; k < 8; k++) hit(k % 2 ? 'explo' : 'woodCrash', g('s29', 3 + R() * 4.3), {gain: .25, lp: 2500, pan: rp(.8)});   // arrows hitting roofs
+for (let k = 0; k < 14; k++) hit(['fast', 'passLow', 'airy'][k % 3], g('s29', R() * 3.8), {gain: .18 + R() * .1, rate: .8 + R() * .4, pan: rp(.8)});
+/* n16: the monk runs up the tower stairs — nothing lands before the dome is up */
+for (let k = 0; k < 7; k++) put(g('n16', .08 + k * .28), .4, knock(180 + R() * 90, {decay: .09, seed: 90 + k}), {gain: .55, pan: rp(.15)});
+hit('woodDrop', g('n16', .3), {gain: .12, rate: .7, lp: 1500}); hit('fast', g('n16', .2), {gain: .3});
 hit('riseWail', g('s29'), {gain: .3, max: 8});
 hit('woodDrop', g('s30', .05), {gain: .15, rate: .5, lp: 900});                                              // ropes and timber creak on the wind-up
 put(g('s30', 1.4), 1, whoosh(30, {from: 120, to: 500, len: .9}), {gain: .5}); hit('heavy', g('s30', 1.5), {gain: .4, rate: .7});   // the log swings
@@ -181,11 +183,11 @@ put(g('s30', 1.4), 1, whoosh(30, {from: 120, to: 500, len: .9}), {gain: .5}); hi
 put(g('s31', FLASH.s31), 16, bell(65, {decay: 15, bright: 1.2, seed: 31}), {gain: .9});
 hit('gong', g('s31', FLASH.s31 - .03), {gain: .8}); hit('boom1', g('s31', FLASH.s31), {gain: .9}); hit('impBoom', g('s31', FLASH.s31), {gain: .6});
 /* s32: arrows break on the golden dome */
-for (let k = 0; k < 30; k++) hit(`iron${k % 5}`, g('s32', R() * 7.8), {gain: .1 + R() * .08, rate: 1.4 + R() * .6, lp: 3500, pan: rp(.8)});
+for (let k = 0; k < 30; k++) hit(`iron${k % 5}`, g('s32', R() * 6.3), {gain: .1 + R() * .08, rate: 1.4 + R() * .6, lp: 3500, pan: rp(.8)});
 for (let k = 0; k < 12; k++) hit(['fast', 'passLow'][k % 2], g('s32', R() * 7.5), {gain: .12, rate: .9 + R() * .3, pan: rp(.8)});
 put(g('s32'), 8, crackle(32, {rate: 60}), {gain: .3}); hit('tonal', g('s32', .3), {gain: .3});
 for (let k = 0; k < 6; k++) hit(`iron${k % 5}`, g('s33', .4 + k * .6), {gain: .06, rate: 1.6, lp: 1800, pan: rp(.8)});
-for (let k = 0; k < 5; k++) put(g('s34', .2 + k * .85), 1, boom({f1: 60, f2: 40, len: .25, seed: 340 + k}), {gain: .45});   // heartbeat
+for (let k = 0; k < 4; k++) put(g('s34', .2 + k * .85), 1, boom({f1: 60, f2: 40, len: .25, seed: 340 + k}), {gain: .45});   // heartbeat
 hit('rattle', g('s34'), {gain: .3, max: 4.2});
 /* s35: the dome cracks */
 hit('riseGroan', g('s35'), {gain: .4, max: 1.5}); hit('boom4', g('s35', FLASH.s35 - .17), {gain: .8}); hit('iron2', g('s35', FLASH.s35), {gain: .5, rate: .7}); hit('scrape', g('s35', FLASH.s35), {gain: .4, rate: .5});
